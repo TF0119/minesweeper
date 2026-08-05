@@ -1,0 +1,39 @@
+version: "2"
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell
+    - revive
+    - unconvert
+    - bodyclose
+
+  settings:
+    revive:
+      rules:
+        - name: exported
+          arguments: ["disableStutteringCheck"]
+
+  exclusions:
+    presets:
+      - comments
+      - std-error-handling
+    rules:
+      # Test helpers may ignore errors that matter in production code.
+      - path: _test\.go
+        linters: [errcheck]
+
+      # mouse.go reads bubbletea's deprecated X10 fields deliberately. Terminals
+      # that only speak the legacy protocol leave Button unset and fill Type, so
+      # dropping the fallback would break right-click for them.
+      - path: internal/ui/mouse(_test)?\.go
+        linters: [staticcheck]
+        text: SA1019
+
+formatters:
+  enable:
+    - gofmt

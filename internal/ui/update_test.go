@@ -57,7 +57,7 @@ func TestNewGameUsesFreshSeedAndRestartReplaysIt(t *testing.T) {
 		t.Errorf("restart seed = %v, want %v", restarted.board.Seed(), original)
 	}
 
-	fresh, _ := m.startNewGame(m.difficulty, game.Seed(original+1))
+	fresh, _ := m.startNewGame(m.difficulty, original+1)
 	if fresh.board.Seed() == original {
 		t.Error("new game kept the old seed")
 	}
