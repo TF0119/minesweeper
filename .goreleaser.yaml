@@ -66,6 +66,7 @@ homebrew_casks:
 
 scoops:
   - name: minesweeper
+    directory: bucket
     homepage: https://github.com/TF0119/minesweeper
     description: Terminal Minesweeper with shareable seeds and a daily challenge
     license: MIT
