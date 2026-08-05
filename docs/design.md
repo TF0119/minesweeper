@@ -11,7 +11,7 @@ way it does, not to restate what the code already says.
 | CLI | `cmd/minesweeper` | flags, exit codes | Parse arguments, resolve options |
 | UI | `internal/ui` | `tea.Msg`, lipgloss styles | Input, rendering, timer |
 | Game | `internal/game` | `Coord`, `Board`, `ActionResult` | Rules and state machine |
-| Storage | `internal/storage` | JSON, XDG paths | Config and high scores |
+| Storage | `internal/storage` | JSON, XDG paths | Config, high scores, statistics |
 
 Complexity lives in `internal/game`. The UI never sees mine positions; it reads
 `CellView`, which exposes only what a player is allowed to know. That is what
@@ -51,11 +51,86 @@ where the player opens. Two players on the same daily seed can therefore see
 different boards if they start in different places — an acceptable trade for
 keeping the opening move safe.
 
+## No-guess boards
+
+A classic board can force a coin flip, and losing to one is the least satisfying
+way for a game to end. `internal/game/solver.go` decides whether a layout can be
+cleared by reasoning alone, and `NewNoGuessBoard` keeps generating until the
+answer is yes.
+
+The solver applies three rules until nothing more can be learned:
+
+1. A number whose remaining count equals its hidden neighbours marks them all as
+   mines; a number already satisfied by its flags clears them all.
+2. When one number's cells are a subset of another's, the difference between the
+   two holds the difference between their counts. This is the reasoning behind
+   patterns like 1-2-1.
+3. The mine counter is a constraint over every hidden cell, which is how most
+   endgames close.
+
+The solver stops at what a player can work out, not at what is theoretically
+decidable. A layout that only yields to exhaustive enumeration is one a human
+would guess on, so calling it unsolvable is the honest answer.
+
+Two design consequences:
+
+- `deduce` is a pure function over constraints, so the reasoning is tested
+  directly rather than through generated boards.
+- The classic generator's use of the random source is frozen. No-guess
+  generation draws from the same source but only on its own path, because
+  changing the classic draw order would hand every previously shared seed a
+  different board.
+
+The search is bounded. When it runs out of attempts the player gets an ordinary
+board and the status line says `guess needed`: a quietly broken promise is worse
+than a stated one.
+
+## Marks
+
+A cell carries at most one mark, so `Mark` is an enum rather than a `Flagged`
+and `Questioned` pair. The pair would have a fourth state that means nothing,
+and every reader would have to work out that it cannot happen.
+
+A flag changes the rules — it blocks reveals and counts towards chords. A
+question mark deliberately changes nothing at all; it is a note, and revealing
+the cell clears it. Keeping `?` inert is what makes it safe to add: no rule
+elsewhere in the package needs to know about it.
+
+Whether `f` cycles through `?` is a preference, so it is a parameter of
+`CycleMark` rather than state on the board. The board defines what marks mean;
+the UI decides which ones a player can reach.
+
+## Statistics
+
+`Tally` stores counts and nothing else. Win rate and average time are computed
+on read, because a stored aggregate that disagrees with the counts it summarises
+is a bug that survives every save. Averages cover won games only: a game lost to
+a mine says nothing about pace.
+
+A game is counted when it reaches a result. Abandoning a board never appears as
+a loss, which keeps the numbers honest enough to be worth looking at.
+
+## Themes
+
+`internal/ui/theme.go` holds a table of palettes; `styles.go` builds lipgloss
+styles from whichever one is selected. Adding a theme means adding a row, not
+editing rendering code.
+
+Colour is never the only carrier of state. Hidden cells have their own glyph and
+terminals without colour get a separate monochrome style set, so a theme only
+changes how the board looks, never what it means. The colourblind palette is
+Okabe-Ito, and a test asserts that no two adjacency digits share a colour.
+
+An unknown theme name behaves differently depending on where it came from: a
+typo on the command line is an error, while a name in the config file falls back
+to `classic`. A config file written by a newer version should not stop the game
+from starting.
+
 ## Errors defined out of existence
 
 Board actions return `ActionResult{Ok: false}` rather than an error when they do
 nothing. Clicking a revealed cell is not a failure; it is a no-op, and the UI
-should not need an error branch for it. `CanReveal`, `CanFlag`, and `CanChord`
+should not need an error branch for it. `CanReveal`, `CanMark`, and `CanChord`
 exist for callers that want to know in advance, for example to grey out an
 affordance.
 
@@ -95,11 +170,16 @@ another thing a reader has to check before they can predict behaviour.
 ## Invariants
 
 - Before the first `Reveal`, no mines are placed.
-- Flags may only be placed on hidden cells.
+- Only hidden cells carry a mark, and revealing a cell clears it.
+- A flag blocks revealing; a question mark never changes what an action does.
 - After `Won` or `Lost`, mutating operations are no-ops.
 
 ## Deliberately out of scope
 
-Solver hints, replays, and network play would each be a new source of complexity
-in a package that is currently easy to hold in your head. If they are added, they
-belong beside `internal/game` and should depend on it, not modify it.
+In-game hints and network play would each be a new source of complexity in a
+package that is currently easy to hold in your head. The solver exists to
+generate boards, not to play them; wiring it to a hint key would put the answer
+one keystroke away from every position and change what the game is.
+
+If they are added, they belong beside `internal/game` and should depend on it,
+not modify it.

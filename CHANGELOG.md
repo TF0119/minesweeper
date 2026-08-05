@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-08-05
+
+### Added
+
+- No-guess boards via `-no-guess`: a logic solver checks each candidate layout
+  and the generator retries until it finds one that can be cleared by deduction
+  alone. Only 13 of 200 random Expert boards pass that bar, so this is the
+  difference between finishing a game and flipping a coin. The status line says
+  `guess needed` when the search comes up empty
+- Question marks: `f` now cycles a cell through flag, `?`, and clear. A `?` is a
+  note only — it does not block a reveal and does not count towards a chord.
+  Set `"question_marks": false` in the config for a plain flag toggle
+- Statistics on `s`: games played, win rate, average winning time, and current
+  and best streak, tracked per difficulty in `stats.json`. Only finished games
+  count
+- Themes via `-theme`: `classic`, `dark`, and `colorblind`. The colourblind
+  palette is Okabe-Ito, chosen so no two adjacency digits share a colour under
+  the common forms of colour blindness
+- Homebrew tap and Scoop bucket, published by GoReleaser on release
+
+### Changed
+
+- The status bar now shrinks to fit the terminal instead of wrapping and pushing
+  the board off screen
+
+### Fixed
+
+- `minesweeper -version` reported `dev` for binaries installed with `go install`.
+  It now falls back to the module version the toolchain records
+- A config file written before a setting existed no longer silently reads that
+  setting as its zero value
+
 ## [0.2.1] - 2026-08-05
 
 ### Fixed

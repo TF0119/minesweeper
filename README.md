@@ -5,7 +5,8 @@
 **Terminal Minesweeper with a testable game core separated from the TUI.**
 
 Classic rules — first-click safety, flood fill, chord, timer, high scores —
-plus shareable board seeds and a daily challenge.
+plus shareable board seeds, a daily challenge, and boards that can be cleared
+without ever guessing.
 
 [![CI](https://github.com/TF0119/minesweeper/actions/workflows/ci.yml/badge.svg)](https://github.com/TF0119/minesweeper/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/TF0119/minesweeper?logo=github)](https://github.com/TF0119/minesweeper/releases/latest)
@@ -19,15 +20,22 @@ plus shareable board seeds and a daily challenge.
 
 ## Install
 
-Download a binary for your platform from the
-[releases page](https://github.com/TF0119/minesweeper/releases/latest), or build
-it yourself with Go 1.25+:
-
 ```bash
+# Homebrew (macOS and Linux)
+brew install TF0119/tap/minesweeper
+
+# Scoop (Windows)
+scoop bucket add TF0119 https://github.com/TF0119/scoop-bucket
+scoop install minesweeper
+
+# Go 1.25+
 go install github.com/TF0119/minesweeper/cmd/minesweeper@latest
 ```
 
-That installs into `$(go env GOPATH)/bin` — usually `~/go/bin`, which has to be
+Or download a binary for your platform from the
+[releases page](https://github.com/TF0119/minesweeper/releases/latest).
+
+`go install` puts the binary in `$(go env GOPATH)/bin` — usually `~/go/bin`, which has to be
 on your `PATH`. Running the same command again upgrades to the newest tagged
 release; `@latest` follows release tags, not `main`. Check what you have with
 `minesweeper -version`.
@@ -40,11 +48,15 @@ minesweeper -difficulty expert
 minesweeper -difficulty custom -width 20 -height 10 -mines 30
 minesweeper -daily                   # today's challenge, same board for everyone
 minesweeper -seed 1487233901         # replay a specific board
+minesweeper -no-guess                # only boards solvable by deduction
+minesweeper -theme dark              # classic, dark or colorblind
 minesweeper -no-color
 ```
 
-Settings and high scores live in `~/.config/minesweeper/`. Options are resolved
-in one order: built-in defaults, then the config file, then command-line flags.
+Settings, high scores, and statistics live in `~/.config/minesweeper/`. Options
+are resolved in one order: built-in defaults, then the config file, then
+command-line flags. `-no-guess` and `-theme` are remembered for next time; turn
+no-guess back off with `-no-guess=false`.
 
 ### Seeds and the daily challenge
 
@@ -56,27 +68,49 @@ everyone who plays on the same day gets the same board.
 Seeds pin the mine layout, not your first click: the opening move is always safe,
 so the same seed can still start differently depending on where you click.
 
+### No-guess boards
+
+Minesweeper normally ends some games on a coin flip. Of 200 random Expert boards,
+only 13 can be cleared by reasoning alone. With `-no-guess` the generator keeps
+laying out mines until it finds one its solver can finish using nothing but the
+deductions a player makes — counting neighbours, comparing overlapping numbers,
+and watching the mine counter. The search costs a few tens of milliseconds on the
+opening click. If it comes up empty the board is still playable and the status
+line says `guess needed` rather than pretending otherwise.
+
+### Statistics
+
+Press `s` for wins, win rate, average winning time, and streaks per difficulty.
+Only finished games count, so starting a fresh board mid-game is not a loss.
+
 ## Controls
 
 | Key | Action |
 |-----|--------|
 | Arrows / `hjkl` | Move cursor |
 | Space / Enter | Reveal |
-| `f` | Toggle flag |
+| `f` | Mark: flag → `?` → clear |
 | `c` | Chord (reveal neighbours once flags match the number) |
 | `n` | New board |
 | `r` | Restart the same seed |
 | `d` | Difficulty menu |
+| `s` | Statistics |
 | `?` | Help |
 | `q` / Ctrl+C | Quit |
 
-Mouse: left click reveals, right click or Shift+left click flags. Some terminals
+A `?` is only a note to yourself: it does not stop a reveal and does not count
+towards a chord. Set `"question_marks": false` in the config to make `f` a plain
+flag toggle.
+
+Mouse: left click reveals, right click or Shift+left click marks. Some terminals
 (notably Windows Terminal and WSL) intercept right-click for paste, so Shift+left
 click is the reliable option there.
 
 Boards larger than the window scroll to follow the cursor, so Expert works on
 small terminals. Cell state never depends on colour alone, so `-no-color`,
-`NO_COLOR=1`, and monochrome terminals stay playable.
+`NO_COLOR=1`, and monochrome terminals stay playable. `-theme colorblind` uses
+the Okabe-Ito palette, where no two adjacency digits collapse into the same
+colour under the common forms of colour blindness.
 
 ## Architecture
 
