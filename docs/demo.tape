@@ -17,7 +17,10 @@ Set Framerate 24
 Set TypingSpeed 60ms
 
 Hide
-Type "export PATH=$PWD/bin:$PATH PS1='$ '" Enter
+# The recording must show the coloured UI regardless of who runs it, and a
+# NO_COLOR in the surrounding shell is inherited all the way into the pty.
+Type "export PATH=$PWD/bin:$PATH PS1='$ ' TERM=xterm-256color" Enter
+Type "unset NO_COLOR" Enter
 Type "clear" Enter
 Show
 
