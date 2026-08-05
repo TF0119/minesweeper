@@ -26,3 +26,8 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+          # Publishing to homebrew-tap and scoop-bucket needs cross-repository
+          # write access. Skip it when that secret is not configured so the
+          # release still produces its binaries.
+          SKIP_TAP_UPLOAD: ${{ secrets.TAP_GITHUB_TOKEN == '' }}

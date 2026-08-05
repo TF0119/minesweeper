@@ -37,6 +37,47 @@ archives:
 checksum:
   name_template: checksums.txt
 
+# Publishing to a tap needs a token that can write to another repository, which
+# the workflow's built-in token cannot do. Without that secret the tap steps are
+# skipped rather than failing, so a release still ships its binaries.
+homebrew_casks:
+  - name: minesweeper
+    binaries:
+      - minesweeper
+    homepage: https://github.com/TF0119/minesweeper
+    description: Terminal Minesweeper with shareable seeds and a daily challenge
+    license: MIT
+    skip_upload: '{{ envOrDefault "SKIP_TAP_UPLOAD" "true" }}'
+    repository:
+      owner: TF0119
+      name: homebrew-tap
+      token: '{{ envOrDefault "TAP_GITHUB_TOKEN" "" }}'
+    commit_author:
+      name: goreleaser
+      email: noreply@github.com
+    hooks:
+      post:
+        # macOS quarantines anything downloaded, and an unsigned binary is
+        # refused outright. Clearing the attribute keeps the cask usable.
+        install: |
+          if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/minesweeper"]
+          end
+
+scoops:
+  - name: minesweeper
+    homepage: https://github.com/TF0119/minesweeper
+    description: Terminal Minesweeper with shareable seeds and a daily challenge
+    license: MIT
+    skip_upload: '{{ envOrDefault "SKIP_TAP_UPLOAD" "true" }}'
+    repository:
+      owner: TF0119
+      name: scoop-bucket
+      token: '{{ envOrDefault "TAP_GITHUB_TOKEN" "" }}'
+    commit_author:
+      name: goreleaser
+      email: noreply@github.com
+
 changelog:
   use: github
   sort: asc
