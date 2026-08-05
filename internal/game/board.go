@@ -68,11 +68,11 @@ func (b *Board) CanReveal(c Coord) bool {
 		return false
 	}
 	cell := b.cell(c)
-	return !cell.Revealed && !cell.Flagged
+	return !cell.Revealed && cell.Mark != MarkFlag
 }
 
-// CanFlag reports whether ToggleFlag would have an effect.
-func (b *Board) CanFlag(c Coord) bool {
+// CanMark reports whether CycleMark would have an effect.
+func (b *Board) CanMark(c Coord) bool {
 	if b.status != StatusPlaying || !c.InBounds(b.width, b.height) {
 		return false
 	}
@@ -91,7 +91,7 @@ func (b *Board) CanChord(c Coord) bool {
 	}
 	var flags uint8
 	for _, n := range c.Neighbors(b.width, b.height) {
-		if b.cell(n).Flagged {
+		if b.cell(n).Mark == MarkFlag {
 			flags++
 		}
 	}
@@ -127,7 +127,7 @@ func (b *Board) Reveal(c Coord) ActionResult {
 
 func (b *Board) revealAt(c Coord) []Coord {
 	cell := b.cell(c)
-	if cell.Revealed || cell.Flagged {
+	if cell.Revealed || cell.Mark == MarkFlag {
 		return nil
 	}
 
@@ -137,10 +137,12 @@ func (b *Board) revealAt(c Coord) []Coord {
 		cur := queue[0]
 		queue = queue[1:]
 		curCell := b.cell(cur)
-		if curCell.Revealed || curCell.Flagged {
+		if curCell.Revealed || curCell.Mark == MarkFlag {
 			continue
 		}
 		curCell.Revealed = true
+		// A mark is a note about a hidden cell; opening it answers the question.
+		curCell.Mark = MarkNone
 		changed = append(changed, cur)
 
 		if curCell.HasMine {
@@ -151,7 +153,7 @@ func (b *Board) revealAt(c Coord) []Coord {
 		if curCell.Adjacent == 0 {
 			for _, n := range cur.Neighbors(b.width, b.height) {
 				nb := b.cell(n)
-				if !nb.Revealed && !nb.Flagged {
+				if !nb.Revealed && nb.Mark != MarkFlag {
 					queue = append(queue, n)
 				}
 			}
@@ -177,14 +179,31 @@ func (b *Board) checkWin() {
 	b.status = StatusWon
 }
 
-// ToggleFlag toggles a flag on a hidden cell.
-func (b *Board) ToggleFlag(c Coord) ActionResult {
-	if !b.CanFlag(c) {
+// CycleMark advances the mark on a hidden cell. With questions enabled the
+// cycle is none, flag, question, none; otherwise it is a plain flag toggle.
+// Keeping the choice in the caller lets the preference live with the UI while
+// the board owns what each mark means.
+func (b *Board) CycleMark(c Coord, questions bool) ActionResult {
+	if !b.CanMark(c) {
 		return b.noop()
 	}
 	cell := b.cell(c)
-	cell.Flagged = !cell.Flagged
+	cell.Mark = nextMark(cell.Mark, questions)
 	return b.result([]Coord{c})
+}
+
+func nextMark(m Mark, questions bool) Mark {
+	switch m {
+	case MarkNone:
+		return MarkFlag
+	case MarkFlag:
+		if questions {
+			return MarkQuestion
+		}
+		return MarkNone
+	default:
+		return MarkNone
+	}
 }
 
 // Chord reveals adjacent hidden cells when flag count matches the number.
@@ -201,7 +220,7 @@ func (b *Board) Chord(c Coord) ActionResult {
 	hidden := make([]Coord, 0)
 	for _, n := range c.Neighbors(b.width, b.height) {
 		nc := b.cell(n)
-		if nc.Flagged {
+		if nc.Mark == MarkFlag {
 			flags++
 		} else if !nc.Revealed {
 			hidden = append(hidden, n)
@@ -244,7 +263,7 @@ func (b *Board) MineCount() int { return b.mineCount }
 func (b *Board) FlagCount() int {
 	n := 0
 	for i := range b.cells {
-		if b.cells[i].Flagged {
+		if b.cells[i].Mark == MarkFlag {
 			n++
 		}
 	}
@@ -264,8 +283,13 @@ func (b *Board) CellView(c Coord) CellView {
 	cell := b.cell(c)
 	showMine := b.status == StatusLost && cell.HasMine
 
-	if cell.Flagged && b.status == StatusPlaying {
-		return CellView{State: CellFlagged}
+	if b.status == StatusPlaying {
+		switch cell.Mark {
+		case MarkFlag:
+			return CellView{State: CellFlagged}
+		case MarkQuestion:
+			return CellView{State: CellQuestioned}
+		}
 	}
 	if cell.Revealed || showMine {
 		return CellView{State: CellRevealed, Adjacent: cell.Adjacent, ShowMine: showMine}

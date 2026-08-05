@@ -69,6 +69,8 @@ func (m Model) renderCell(c game.Coord) string {
 		content = m.glyphs.hidden
 	case game.CellFlagged:
 		content = m.glyphs.flag
+	case game.CellQuestioned:
+		content = m.glyphs.question
 	case game.CellRevealed:
 		switch {
 		case view.ShowMine:
@@ -86,6 +88,8 @@ func (m Model) renderCell(c game.Coord) string {
 		return m.styles.Cursor.Render(text)
 	case view.State == game.CellFlagged:
 		return m.styles.Flagged.Render(text)
+	case view.State == game.CellQuestioned:
+		return m.styles.Questioned.Render(text)
 	case view.State == game.CellRevealed && view.ShowMine:
 		return m.styles.Mine.Render(text)
 	case view.State == game.CellRevealed && view.Adjacent > 0:
@@ -190,9 +194,20 @@ func (m Model) renderDifficultyMenu() string {
 
 func (m Model) renderHelp() string {
 	body := strings.Join(m.keys.helpLines(), "\n") +
-		"\n\nMouse: left reveals, shift+left or right flags." +
+		"\n\n" + m.markCycleHelp() +
+		"\nMouse: left reveals, shift+left or right marks." +
 		"\nSome terminals paste on right-click; shift+left always works."
 	return m.renderOverlay("Help", body)
+}
+
+// markCycleHelp describes what f does, which depends on whether question marks
+// are enabled in the config.
+func (m Model) markCycleHelp() string {
+	if m.config.QuestionMarks {
+		return "Marks cycle flag → ? → clear. A ? is only a note: it does not\n" +
+			"stop a reveal and does not count towards a chord."
+	}
+	return "Marks toggle between flag and clear."
 }
 
 func (m Model) renderGameOver() string {

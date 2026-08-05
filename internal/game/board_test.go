@@ -67,11 +67,11 @@ func TestFlagToggle(t *testing.T) {
 	b := NewBoard(d, Seed(1))
 	b.markMinesPlaced()
 
-	res := b.ToggleFlag(Coord{1, 1})
+	res := b.CycleMark(Coord{1, 1}, false)
 	if !res.Ok || b.CellView(Coord{1, 1}).State != CellFlagged {
 		t.Error("flag toggle failed")
 	}
-	res = b.ToggleFlag(Coord{1, 1})
+	res = b.CycleMark(Coord{1, 1}, false)
 	if !res.Ok || b.CellView(Coord{1, 1}).State != CellHidden {
 		t.Error("flag untoggle failed")
 	}
@@ -82,8 +82,8 @@ func TestFlagOnRevealed(t *testing.T) {
 	b := NewBoard(d, Seed(1))
 	b.markMinesPlaced()
 	b.setCell(Coord{0, 0}, false, 1, true, false)
-	if b.CanFlag(Coord{0, 0}) {
-		t.Error("CanFlag should be false on revealed cell")
+	if b.CanMark(Coord{0, 0}) {
+		t.Error("CanMark should be false on revealed cell")
 	}
 }
 
@@ -209,9 +209,80 @@ func TestRemainingMines(t *testing.T) {
 	d := PresetDifficulty(Beginner)
 	b := NewBoard(d, Seed(1))
 	b.markMinesPlaced()
-	b.ToggleFlag(Coord{0, 0})
-	b.ToggleFlag(Coord{1, 0})
+	b.CycleMark(Coord{0, 0}, false)
+	b.CycleMark(Coord{1, 0}, false)
 	if b.RemainingMines() != 8 {
 		t.Errorf("remaining mines = %d, want 8", b.RemainingMines())
+	}
+}
+
+func TestCycleMark(t *testing.T) {
+	tests := []struct {
+		name      string
+		questions bool
+		want      []CellState
+	}{
+		{"questions on", true, []CellState{CellFlagged, CellQuestioned, CellHidden}},
+		{"questions off", false, []CellState{CellFlagged, CellHidden, CellFlagged}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b := NewBoard(PresetDifficulty(Beginner), Seed(1))
+			c := Coord{X: 1, Y: 1}
+			for i, want := range tt.want {
+				if res := b.CycleMark(c, tt.questions); !res.Ok {
+					t.Fatalf("step %d: CycleMark reported no effect", i)
+				}
+				if got := b.CellView(c).State; got != want {
+					t.Errorf("step %d: state = %v, want %v", i, got, want)
+				}
+			}
+		})
+	}
+}
+
+// A question mark is a note, not a shield: unlike a flag it must not change
+// what reveal, flood fill, or chord do.
+func TestQuestionMarkDoesNotProtectTheCell(t *testing.T) {
+	b := NewBoard(Difficulty{Preset: Custom, Width: 3, Height: 1, Mines: 1}, Seed(1))
+	b.setCell(Coord{0, 0}, false, 0, false, false)
+	b.setCell(Coord{1, 0}, false, 1, false, false)
+	b.setCell(Coord{2, 0}, true, 0, false, false)
+
+	q := Coord{1, 0}
+	b.CycleMark(q, true)
+	b.CycleMark(q, true)
+	if got := b.CellView(q).State; got != CellQuestioned {
+		t.Fatalf("setup: state = %v, want CellQuestioned", got)
+	}
+
+	if !b.CanReveal(q) {
+		t.Error("a questioned cell should still be revealable")
+	}
+	if got := b.RemainingMines(); got != 1 {
+		t.Errorf("RemainingMines = %d, want 1: a ? is not a flag", got)
+	}
+	if res := b.Reveal(q); !res.Ok || b.CellView(q).State != CellRevealed {
+		t.Errorf("revealing a questioned cell failed: %+v", res)
+	}
+}
+
+func TestFloodFillClearsQuestionMarksButStopsAtFlags(t *testing.T) {
+	b := NewBoard(Difficulty{Preset: Custom, Width: 3, Height: 1, Mines: 0}, Seed(1))
+	for x := 0; x < 3; x++ {
+		b.setCell(Coord{x, 0}, false, 0, false, false)
+	}
+	questioned, flagged := Coord{1, 0}, Coord{2, 0}
+	b.CycleMark(questioned, true)
+	b.CycleMark(questioned, true)
+	b.CycleMark(flagged, true)
+
+	b.Reveal(Coord{0, 0})
+
+	if got := b.CellView(questioned).State; got != CellRevealed {
+		t.Errorf("questioned cell state = %v, want CellRevealed", got)
+	}
+	if got := b.CellView(flagged).State; got != CellFlagged {
+		t.Errorf("flagged cell state = %v, want CellFlagged: flags stop flood fill", got)
 	}
 }

@@ -40,7 +40,7 @@ func DefaultKeyMap() KeyMap {
 		),
 		Flag: key.NewBinding(
 			key.WithKeys("f"),
-			key.WithHelp("f", "toggle flag (or shift+click)"),
+			key.WithHelp("f", "mark cell (or shift+click)"),
 		),
 		Chord: key.NewBinding(
 			key.WithKeys("c", "shift+enter"),

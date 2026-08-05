@@ -19,19 +19,21 @@ type Custom struct {
 
 // Config is persisted user settings.
 type Config struct {
-	Version    int    `json:"version"`
-	LastPreset string `json:"last_preset"`
-	Custom     Custom `json:"custom"`
-	UseEmoji   bool   `json:"use_emoji"`
+	Version       int    `json:"version"`
+	LastPreset    string `json:"last_preset"`
+	Custom        Custom `json:"custom"`
+	UseEmoji      bool   `json:"use_emoji"`
+	QuestionMarks bool   `json:"question_marks"`
 }
 
 // DefaultConfig returns factory defaults.
 func DefaultConfig() Config {
 	return Config{
-		Version:    configVersion,
-		LastPreset: "beginner",
-		Custom:     Custom{Width: 20, Height: 10, Mines: 30},
-		UseEmoji:   false,
+		Version:       configVersion,
+		LastPreset:    "beginner",
+		Custom:        Custom{Width: 20, Height: 10, Mines: 30},
+		UseEmoji:      false,
+		QuestionMarks: true,
 	}
 }
 
@@ -48,7 +50,9 @@ func LoadConfig() (Config, error) {
 		}
 		return DefaultConfig(), err
 	}
-	var c Config
+	// Decode onto the defaults so settings the file predates keep their
+	// intended value instead of silently becoming the zero value.
+	c := DefaultConfig()
 	if err := json.Unmarshal(data, &c); err != nil {
 		return DefaultConfig(), err
 	}

@@ -4,17 +4,18 @@ import "github.com/charmbracelet/lipgloss"
 
 // Styles holds lipgloss styles for rendering.
 type Styles struct {
-	Hidden    lipgloss.Style
-	Revealed  lipgloss.Style
-	Flagged   lipgloss.Style
-	Mine      lipgloss.Style
-	Cursor    lipgloss.Style
-	Digits    [9]lipgloss.Style
-	HUD       lipgloss.Style
-	StatusBar lipgloss.Style
-	Overlay   lipgloss.Style
-	Title     lipgloss.Style
-	Warning   lipgloss.Style
+	Hidden     lipgloss.Style
+	Revealed   lipgloss.Style
+	Flagged    lipgloss.Style
+	Questioned lipgloss.Style
+	Mine       lipgloss.Style
+	Cursor     lipgloss.Style
+	Digits     [9]lipgloss.Style
+	HUD        lipgloss.Style
+	StatusBar  lipgloss.Style
+	Overlay    lipgloss.Style
+	Title      lipgloss.Style
+	Warning    lipgloss.Style
 }
 
 // digitColors are the classic Minesweeper number colours, indexed by the
@@ -43,17 +44,18 @@ func monochromeStyles(r *lipgloss.Renderer) Styles {
 	base := r.NewStyle()
 	bold := base.Bold(true)
 	return Styles{
-		Hidden:    base,
-		Revealed:  base,
-		Flagged:   bold,
-		Mine:      bold,
-		Cursor:    base.Reverse(true),
-		Digits:    [9]lipgloss.Style{1: bold, 2: bold, 3: bold, 4: bold, 5: bold, 6: bold, 7: bold, 8: bold},
-		HUD:       bold,
-		StatusBar: base,
-		Overlay:   base.Reverse(true).Padding(1, 2),
-		Title:     bold,
-		Warning:   bold,
+		Hidden:     base,
+		Revealed:   base,
+		Flagged:    bold,
+		Questioned: bold,
+		Mine:       bold,
+		Cursor:     base.Reverse(true),
+		Digits:     [9]lipgloss.Style{1: bold, 2: bold, 3: bold, 4: bold, 5: bold, 6: bold, 7: bold, 8: bold},
+		HUD:        bold,
+		StatusBar:  base,
+		Overlay:    base.Reverse(true).Padding(1, 2),
+		Title:      bold,
+		Warning:    bold,
 	}
 }
 
@@ -72,16 +74,17 @@ func colorStyles(r *lipgloss.Renderer) Styles {
 	}
 
 	return Styles{
-		Hidden:    hidden,
-		Revealed:  revealed,
-		Flagged:   hidden.Foreground(lipgloss.Color("#CC0000")).Bold(true),
-		Mine:      revealed.Foreground(lipgloss.Color("#CC0000")).Bold(true),
-		Cursor:    r.NewStyle().Background(lipgloss.Color("#000080")).Foreground(lipgloss.Color("#FFFFFF")).Bold(true),
-		Digits:    digits,
-		HUD:       r.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Background(lipgloss.Color("#606060")),
-		StatusBar: r.NewStyle().Foreground(lipgloss.Color("#909090")),
-		Overlay:   r.NewStyle().Background(lipgloss.Color("#1C1C1C")).Foreground(lipgloss.Color("#FFFFFF")).Padding(1, 2),
-		Title:     r.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFD700")),
-		Warning:   r.NewStyle().Bold(true).Foreground(lipgloss.Color("#FF8800")),
+		Hidden:     hidden,
+		Revealed:   revealed,
+		Flagged:    hidden.Foreground(lipgloss.Color("#CC0000")).Bold(true),
+		Questioned: hidden.Foreground(lipgloss.Color("#0000CC")).Bold(true),
+		Mine:       revealed.Foreground(lipgloss.Color("#CC0000")).Bold(true),
+		Cursor:     r.NewStyle().Background(lipgloss.Color("#000080")).Foreground(lipgloss.Color("#FFFFFF")).Bold(true),
+		Digits:     digits,
+		HUD:        r.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Background(lipgloss.Color("#606060")),
+		StatusBar:  r.NewStyle().Foreground(lipgloss.Color("#909090")),
+		Overlay:    r.NewStyle().Background(lipgloss.Color("#1C1C1C")).Foreground(lipgloss.Color("#FFFFFF")).Padding(1, 2),
+		Title:      r.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFD700")),
+		Warning:    r.NewStyle().Bold(true).Foreground(lipgloss.Color("#FF8800")),
 	}
 }

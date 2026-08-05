@@ -201,7 +201,7 @@ func (m Model) applyReveal(c game.Coord) (Model, tea.Cmd) {
 }
 
 func (m Model) applyFlag(c game.Coord) (Model, tea.Cmd) {
-	m.board.ToggleFlag(c)
+	m.board.CycleMark(c, m.config.QuestionMarks)
 	return m, nil
 }
 

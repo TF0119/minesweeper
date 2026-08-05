@@ -10,7 +10,10 @@ func (b *Board) setCell(c Coord, mine bool, adjacent uint8, revealed, flagged bo
 	cell.HasMine = mine
 	cell.Adjacent = adjacent
 	cell.Revealed = revealed
-	cell.Flagged = flagged
+	cell.Mark = MarkNone
+	if flagged {
+		cell.Mark = MarkFlag
+	}
 	b.minesPlaced = true
 }
 
