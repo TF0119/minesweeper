@@ -30,4 +30,4 @@ jobs:
           # Publishing to homebrew-tap and scoop-bucket needs cross-repository
           # write access. Skip it when that secret is not configured so the
           # release still produces its binaries.
-          SKIP_TAP_UPLOAD: ${{ secrets.TAP_GITHUB_TOKEN == '' }}
+          SKIP_TAP_UPLOAD: ${{ secrets.TAP_GITHUB_TOKEN == '' && 'true' || 'false' }}

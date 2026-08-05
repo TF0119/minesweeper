@@ -47,11 +47,11 @@ homebrew_casks:
     homepage: https://github.com/TF0119/minesweeper
     description: Terminal Minesweeper with shareable seeds and a daily challenge
     license: MIT
-    skip_upload: '{{ envOrDefault "SKIP_TAP_UPLOAD" "true" }}'
+    skip_upload: '{{ eq .Env.SKIP_TAP_UPLOAD "true" }}'
     repository:
       owner: TF0119
       name: homebrew-tap
-      token: '{{ envOrDefault "TAP_GITHUB_TOKEN" "" }}'
+      token: '{{ .Env.TAP_GITHUB_TOKEN }}'
     commit_author:
       name: goreleaser
       email: noreply@github.com
@@ -69,11 +69,11 @@ scoops:
     homepage: https://github.com/TF0119/minesweeper
     description: Terminal Minesweeper with shareable seeds and a daily challenge
     license: MIT
-    skip_upload: '{{ envOrDefault "SKIP_TAP_UPLOAD" "true" }}'
+    skip_upload: '{{ eq .Env.SKIP_TAP_UPLOAD "true" }}'
     repository:
       owner: TF0119
       name: scoop-bucket
-      token: '{{ envOrDefault "TAP_GITHUB_TOKEN" "" }}'
+      token: '{{ .Env.TAP_GITHUB_TOKEN }}'
     commit_author:
       name: goreleaser
       email: noreply@github.com
