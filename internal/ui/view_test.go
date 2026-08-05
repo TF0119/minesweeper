@@ -83,6 +83,43 @@ func TestCenterCell(t *testing.T) {
 	}
 }
 
+// Colour is decoration, never the only carrier of state: a terminal that drops
+// styling must still show which cells are unopened.
+func TestBoardStaysReadableWithoutColor(t *testing.T) {
+	m := NewModel(Options{
+		Difficulty: game.PresetDifficulty(game.Beginner),
+		Seed:       game.Seed(2),
+		Config:     storage.DefaultConfig(),
+		HighScores: storage.DefaultHighScores(),
+		NoColor:    true,
+	})
+	m.screen = ScreenHelp // suppress the cursor so plain cells are compared
+
+	opened := m.board.Reveal(game.Coord{X: 4, Y: 4})
+	var empty game.Coord
+	for _, c := range opened.Changed {
+		if m.board.CellView(c).Adjacent == 0 {
+			empty = c
+			break
+		}
+	}
+
+	var hidden game.Coord
+	for y := 0; y < m.board.Height() && hidden == (game.Coord{}); y++ {
+		for x := 0; x < m.board.Width(); x++ {
+			c := game.Coord{X: x, Y: y}
+			if m.board.CellView(c).State == game.CellHidden {
+				hidden = c
+				break
+			}
+		}
+	}
+
+	if got, want := m.renderCell(hidden), m.renderCell(empty); got == want {
+		t.Errorf("hidden and revealed-empty cells both render as %q", got)
+	}
+}
+
 func TestHelpListsEveryBinding(t *testing.T) {
 	m := testModel()
 	body := m.renderHelp()

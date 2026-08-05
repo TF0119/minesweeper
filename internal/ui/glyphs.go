@@ -1,6 +1,6 @@
 package ui
 
-// glyphs holds the characters used to draw cells. Resolving the emoji setting
+// glyphs holds the characters used to draw cells. Resolving the character set
 // once at construction keeps the per-cell render path branch-free.
 type glyphs struct {
 	hidden string
@@ -8,11 +8,13 @@ type glyphs struct {
 	mine   string
 }
 
-// newGlyphs picks a glyph set. Both sets are single-width to avoid the column
-// misalignment that wide emoji cause in many terminals.
+// newGlyphs picks a glyph set. Hidden cells always carry a visible mark rather
+// than relying on their background shade, so the board stays readable with
+// -no-color, on low-contrast themes, and in terminals that drop colour.
+// Both sets are single-width to avoid the column misalignment wide emoji cause.
 func newGlyphs(useEmoji bool) glyphs {
 	if useEmoji {
 		return glyphs{hidden: "·", flag: "⚑", mine: "✹"}
 	}
-	return glyphs{hidden: " ", flag: "F", mine: "*"}
+	return glyphs{hidden: ".", flag: "F", mine: "*"}
 }
