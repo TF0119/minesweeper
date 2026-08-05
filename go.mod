@@ -1,4 +1,4 @@
-module github.com/takeru0119/minesweeper
+module github.com/TF0119/minesweeper
 
 go 1.25.0
 

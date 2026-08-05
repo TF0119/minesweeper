@@ -19,13 +19,13 @@ Classic Windows-style rules: first-click safety, flood fill, chord, timer, and h
 Requires Go 1.22+.
 
 ```bash
-go install github.com/takeru0119/minesweeper/cmd/minesweeper@latest
+go install github.com/TF0119/minesweeper/cmd/minesweeper@latest
 ```
 
 Or build from source:
 
 ```bash
-git clone https://github.com/takeru0119/minesweeper.git
+git clone https://github.com/TF0119/minesweeper.git
 cd minesweeper
 go build -o minesweeper ./cmd/minesweeper
 ./minesweeper

@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/takeru0119/minesweeper/internal/game"
+	"github.com/TF0119/minesweeper/internal/game"
 )
 
 const highScoreVersion = 1
