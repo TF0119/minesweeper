@@ -16,6 +16,7 @@ type Model struct {
 	difficulty game.Difficulty
 	config     storage.Config
 	highscores storage.HighScores
+	stats      storage.Stats
 
 	dailySeed game.Seed // today's challenge, for labelling the current board
 
@@ -52,6 +53,7 @@ func NewModel(opts Options) Model {
 		difficulty: d,
 		config:     opts.Config,
 		highscores: opts.HighScores,
+		stats:      opts.Stats,
 		dailySeed:  game.DailySeed(timeNow()),
 		vp:         fit(viewport{}, 0, 0, d.Width, d.Height),
 		styles:     NewStyles(!opts.NoColor),

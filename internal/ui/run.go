@@ -16,6 +16,7 @@ type Options struct {
 	Seed       game.Seed
 	Config     storage.Config
 	HighScores storage.HighScores
+	Stats      storage.Stats
 	NoColor    bool
 }
 

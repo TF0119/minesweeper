@@ -27,9 +27,18 @@ func ConfigPath() (string, error) {
 
 // HighScorePath returns the path to highscores.json.
 func HighScorePath() (string, error) {
+	return dataFile("highscores.json")
+}
+
+// StatsPath returns the path to stats.json.
+func StatsPath() (string, error) {
+	return dataFile("stats.json")
+}
+
+func dataFile(name string) (string, error) {
 	dir, err := ConfigDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, "highscores.json"), nil
+	return filepath.Join(dir, name), nil
 }

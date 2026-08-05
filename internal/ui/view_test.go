@@ -129,3 +129,31 @@ func TestHelpListsEveryBinding(t *testing.T) {
 		}
 	}
 }
+
+func TestStatsScreenShowsEveryDifficulty(t *testing.T) {
+	stats := storage.DefaultStats()
+	stats.RecordWin(game.PresetDifficulty(game.Beginner).Key(), 42)
+	stats.RecordLoss(game.PresetDifficulty(game.Expert).Key())
+
+	m := NewModel(Options{
+		Difficulty: game.PresetDifficulty(game.Beginner),
+		Seed:       game.Seed(1),
+		Config:     storage.DefaultConfig(),
+		HighScores: storage.DefaultHighScores(),
+		Stats:      stats,
+	})
+
+	body := m.renderStats()
+	for _, p := range menuPresets {
+		if !strings.Contains(body, p.String()) {
+			t.Errorf("statistics screen is missing %q", p)
+		}
+	}
+	if !strings.Contains(body, "42s") {
+		t.Error("statistics screen should show the average time of the won game")
+	}
+	// Intermediate has never been played, so it has no average to show.
+	if !strings.Contains(body, "—") {
+		t.Error("an unplayed difficulty should show a placeholder, not a fake 0s")
+	}
+}

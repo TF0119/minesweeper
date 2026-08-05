@@ -44,7 +44,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch m.screen {
-	case ScreenHelp, ScreenGameOver, ScreenWin:
+	case ScreenStats, ScreenHelp, ScreenGameOver, ScreenWin:
 		return m.handleOverlayKey(msg)
 	case ScreenDifficultyMenu:
 		return m.handleDifficultyMenuKey(msg)
@@ -61,7 +61,7 @@ func (m Model) handleOverlayKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Quit):
 		m.quitting = true
 		return m, tea.Quit
-	case m.screen == ScreenHelp:
+	case m.screen == ScreenHelp, m.screen == ScreenStats:
 		m.screen = ScreenPlaying
 	}
 	return m, nil
@@ -75,6 +75,8 @@ func (m Model) handlePlayingKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	case key.Matches(msg, m.keys.Help):
 		m.screen = ScreenHelp
+	case key.Matches(msg, m.keys.Stats):
+		m.screen = ScreenStats
 	case key.Matches(msg, m.keys.Difficulty):
 		m.screen = ScreenDifficultyMenu
 		m.menuIndex = m.presetIndex()
@@ -228,12 +230,16 @@ func (m Model) afterAction(res game.ActionResult, wasReady bool) (Model, tea.Cmd
 	switch res.Status {
 	case game.StatusLost:
 		m = m.stopTimer()
+		m.stats.RecordLoss(m.difficulty.Key())
+		_ = storage.SaveStats(m.stats)
 		m.screen = ScreenGameOver
 	case game.StatusWon:
 		m = m.stopTimer()
 		if m.highscores.TryUpdate(m.difficulty.Key(), m.elapsed, m.difficulty) {
 			_ = storage.SaveHighScores(m.highscores)
 		}
+		m.stats.RecordWin(m.difficulty.Key(), m.elapsed)
+		_ = storage.SaveStats(m.stats)
 		m.screen = ScreenWin
 	}
 	return m, cmd

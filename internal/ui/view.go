@@ -6,6 +6,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/TF0119/minesweeper/internal/game"
+	"github.com/TF0119/minesweeper/internal/storage"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -24,6 +25,7 @@ type Screen int
 const (
 	ScreenPlaying Screen = iota
 	ScreenDifficultyMenu
+	ScreenStats
 	ScreenHelp
 	ScreenGameOver
 	ScreenWin
@@ -47,6 +49,8 @@ func (m Model) View() string {
 	switch m.screen {
 	case ScreenDifficultyMenu:
 		parts = append(parts, m.renderDifficultyMenu())
+	case ScreenStats:
+		parts = append(parts, m.renderStats())
 	case ScreenHelp:
 		parts = append(parts, m.renderHelp())
 	case ScreenGameOver:
@@ -183,7 +187,7 @@ func (m Model) renderScrollIndicator() string {
 
 func (m Model) renderStatusBar() string {
 	return m.styles.StatusBar.Render(
-		" arrows/hjkl move · space reveal · f flag · c chord · n new · r restart · d difficulty · ? help · q quit ",
+		" arrows/hjkl move · space reveal · f mark · c chord · n new · r restart · d difficulty · s stats · ? help · q quit ",
 	)
 }
 
@@ -204,6 +208,34 @@ func (m Model) renderDifficultyMenu() string {
 	}
 	lines = append(lines, "", "enter select · esc back")
 	return m.renderOverlay("Difficulty", strings.Join(lines, "\n"))
+}
+
+func (m Model) renderStats() string {
+	rows := []string{fmt.Sprintf("%-13s %6s %6s %8s %7s %7s",
+		"", "played", "won", "win rate", "avg", "streak")}
+
+	for _, p := range menuPresets {
+		t := m.stats.For(game.PresetDifficulty(p).Key())
+		rows = append(rows, fmt.Sprintf("%-13s %6d %6d %7.0f%% %7s %7s",
+			p.String(), t.Played, t.Won, t.WinRate()*100,
+			secondsLabel(t.AverageWinSeconds()), streakLabel(t)))
+	}
+
+	rows = append(rows, "", "Only finished games count. Starting a new board mid-game does not.")
+	return m.renderOverlay("Statistics", strings.Join(rows, "\n"))
+}
+
+// secondsLabel renders a duration that may not exist yet.
+func secondsLabel(sec int) string {
+	if sec < 0 {
+		return "—"
+	}
+	return fmt.Sprintf("%ds", sec)
+}
+
+// streakLabel shows the run in progress against the best one so far.
+func streakLabel(t storage.Tally) string {
+	return fmt.Sprintf("%d/%d", t.CurrentStreak, t.BestStreak)
 }
 
 func (m Model) renderHelp() string {

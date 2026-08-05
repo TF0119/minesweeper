@@ -64,6 +64,7 @@ func run(args []string) error {
 
 	config := loadConfig()
 	scores := loadHighScores()
+	stats := loadStats()
 
 	d, err := resolveDifficulty(*difficulty, *width, *height, *mines, config)
 	if err != nil {
@@ -89,6 +90,7 @@ func run(args []string) error {
 		Seed:       seed,
 		Config:     config,
 		HighScores: scores,
+		Stats:      stats,
 		NoColor:    *noColor,
 	})
 }
@@ -110,6 +112,15 @@ func loadHighScores() storage.HighScores {
 		return storage.DefaultHighScores()
 	}
 	return h
+}
+
+func loadStats() storage.Stats {
+	s, err := storage.LoadStats()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "minesweeper: using empty statistics:", err)
+		return storage.DefaultStats()
+	}
+	return s
 }
 
 // resolveDifficulty applies the precedence documented in the README:

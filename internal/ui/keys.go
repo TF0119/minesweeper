@@ -9,10 +9,11 @@ import (
 
 // KeyMap defines key bindings.
 type KeyMap struct {
-	Up, Down, Left, Right          key.Binding
-	Reveal, Flag, Chord            key.Binding
-	New, Restart, Difficulty, Help key.Binding
-	Quit                           key.Binding
+	Up, Down, Left, Right    key.Binding
+	Reveal, Flag, Chord      key.Binding
+	New, Restart, Difficulty key.Binding
+	Stats, Help              key.Binding
+	Quit                     key.Binding
 }
 
 // DefaultKeyMap returns default bindings.
@@ -58,6 +59,10 @@ func DefaultKeyMap() KeyMap {
 			key.WithKeys("d"),
 			key.WithHelp("d", "difficulty"),
 		),
+		Stats: key.NewBinding(
+			key.WithKeys("s"),
+			key.WithHelp("s", "statistics"),
+		),
 		Help: key.NewBinding(
 			key.WithKeys("?"),
 			key.WithHelp("?", "help"),
@@ -75,7 +80,7 @@ func (k KeyMap) bindings() []key.Binding {
 	return []key.Binding{
 		k.Up, k.Down, k.Left, k.Right,
 		k.Reveal, k.Flag, k.Chord,
-		k.New, k.Restart, k.Difficulty, k.Help, k.Quit,
+		k.New, k.Restart, k.Difficulty, k.Stats, k.Help, k.Quit,
 	}
 }
 
