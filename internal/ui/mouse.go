@@ -1,0 +1,64 @@
+package ui
+
+import tea "github.com/charmbracelet/bubbletea"
+
+// mouseClick describes an actionable mouse click, if any.
+type mouseClick struct {
+	flag   bool
+	reveal bool
+}
+
+// classifyMouseEvent normalizes terminal-specific mouse encodings.
+// Shift+left-click flags cells when the terminal steals right-click (paste).
+func classifyMouseEvent(msg tea.MouseMsg, lastBtn tea.MouseButton) (click mouseClick, storeBtn tea.MouseButton) {
+	storeBtn = lastBtn
+
+	if msg.Action != tea.MouseActionPress && msg.Action != tea.MouseActionRelease {
+		return mouseClick{}, storeBtn
+	}
+
+	btn := msg.Button
+	if btn == tea.MouseButtonNone {
+		btn = buttonFromLegacyType(msg.Type)
+	}
+	if btn == tea.MouseButtonNone && msg.Action == tea.MouseActionRelease {
+		btn = lastBtn
+	}
+	if btn != tea.MouseButtonNone && msg.Action == tea.MouseActionPress {
+		storeBtn = btn
+	}
+
+	// Shift+left: flag (WSL / Windows Terminal often paste on right-click)
+	if msg.Shift && btn == tea.MouseButtonLeft {
+		return mouseClick{flag: true}, storeBtn
+	}
+
+	switch btn {
+	case tea.MouseButtonRight, tea.MouseButtonMiddle:
+		if msg.Action == tea.MouseActionPress || msg.Action == tea.MouseActionRelease {
+			return mouseClick{flag: true}, storeBtn
+		}
+	case tea.MouseButtonLeft:
+		if msg.Action == tea.MouseActionPress {
+			return mouseClick{reveal: true}, storeBtn
+		}
+	}
+	return mouseClick{}, storeBtn
+}
+
+func buttonFromLegacyType(t tea.MouseEventType) tea.MouseButton {
+	switch t {
+	case tea.MouseLeft:
+		return tea.MouseButtonLeft
+	case tea.MouseRight:
+		return tea.MouseButtonRight
+	case tea.MouseMiddle:
+		return tea.MouseButtonMiddle
+	default:
+		return tea.MouseButtonNone
+	}
+}
+
+func isMouseClick(msg tea.MouseMsg) bool {
+	return msg.Action == tea.MouseActionPress || msg.Action == tea.MouseActionRelease
+}
