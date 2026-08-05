@@ -56,10 +56,18 @@ func NewModel(opts Options) Model {
 		stats:      opts.Stats,
 		dailySeed:  game.DailySeed(timeNow()),
 		vp:         fit(viewport{}, 0, 0, d.Width, d.Height),
-		styles:     NewStyles(!opts.NoColor),
+		styles:     NewStyles(themeFromConfig(opts.Config), !opts.NoColor),
 		glyphs:     newGlyphs(opts.Config.UseEmoji),
 		keys:       DefaultKeyMap(),
 	}
+}
+
+// themeFromConfig resolves the saved theme name. A name this build does not
+// know is treated as classic rather than an error: a config file written by a
+// newer version should not stop the game from starting.
+func themeFromConfig(c storage.Config) Theme {
+	theme, _ := ParseTheme(c.Theme)
+	return theme
 }
 
 // newBoard builds the kind of board the player asked for. No-guess boards cost

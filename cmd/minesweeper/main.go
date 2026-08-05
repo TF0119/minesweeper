@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/TF0119/minesweeper/internal/game"
@@ -49,6 +50,7 @@ func run(args []string) error {
 		seedFlag    = fs.String("seed", "", `board seed: a number, or "daily" for today's challenge`)
 		daily       = fs.Bool("daily", false, `shorthand for -seed daily`)
 		noGuess     = fs.Bool("no-guess", false, "only generate boards solvable without guessing")
+		theme       = fs.String("theme", "", "colour theme: classic, dark or colorblind")
 		noColor     = fs.Bool("no-color", false, "disable colors")
 		showVersion = fs.Bool("version", false, "print version and exit")
 	)
@@ -82,6 +84,14 @@ func run(args []string) error {
 	if given["no-guess"] {
 		config.NoGuess = *noGuess
 	}
+	if given["theme"] {
+		// A typo here is worth reporting; a stale name in the config file is
+		// not, because that must never stop the game from starting.
+		if _, ok := ui.ParseTheme(*theme); !ok {
+			return fmt.Errorf("unknown theme %q, want one of: %s", *theme, themeNames())
+		}
+		config.Theme = *theme
+	}
 
 	config = rememberPreferences(config, d)
 
@@ -112,6 +122,14 @@ func loadHighScores() storage.HighScores {
 		return storage.DefaultHighScores()
 	}
 	return h
+}
+
+func themeNames() string {
+	names := make([]string, 0, len(ui.Themes))
+	for _, t := range ui.Themes {
+		names = append(names, string(t))
+	}
+	return strings.Join(names, ", ")
 }
 
 func loadStats() storage.Stats {

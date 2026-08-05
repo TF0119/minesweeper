@@ -25,6 +25,7 @@ type Config struct {
 	UseEmoji      bool   `json:"use_emoji"`
 	QuestionMarks bool   `json:"question_marks"`
 	NoGuess       bool   `json:"no_guess"`
+	Theme         string `json:"theme"`
 }
 
 // DefaultConfig returns factory defaults.
@@ -36,6 +37,7 @@ func DefaultConfig() Config {
 		UseEmoji:      false,
 		QuestionMarks: true,
 		NoGuess:       false,
+		Theme:         "classic",
 	}
 }
 

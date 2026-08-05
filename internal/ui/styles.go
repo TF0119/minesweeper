@@ -18,26 +18,15 @@ type Styles struct {
 	Warning    lipgloss.Style
 }
 
-// digitColors are the classic Minesweeper number colours, indexed by the
-// adjacent mine count.
-var digitColors = [9]string{
-	1: "#0000FF",
-	2: "#008000",
-	3: "#FF0000",
-	4: "#000080",
-	5: "#800000",
-	6: "#008080",
-	7: "#000000",
-	8: "#808080",
-}
-
-// NewStyles builds the style set. The monochrome set carries cell state
-// through bold and reverse so the board survives terminals without colour.
-func NewStyles(useColor bool) Styles {
+// NewStyles builds the style set for a theme. The monochrome set carries cell
+// state through bold and reverse so the board survives terminals without
+// colour, which is also why no theme is consulted in that case.
+func NewStyles(theme Theme, useColor bool) Styles {
+	r := lipgloss.DefaultRenderer()
 	if !useColor {
-		return monochromeStyles(lipgloss.DefaultRenderer())
+		return monochromeStyles(r)
 	}
-	return colorStyles(lipgloss.DefaultRenderer())
+	return colorStyles(r, theme.palette())
 }
 
 func monochromeStyles(r *lipgloss.Renderer) Styles {
@@ -59,32 +48,33 @@ func monochromeStyles(r *lipgloss.Renderer) Styles {
 	}
 }
 
-func colorStyles(r *lipgloss.Renderer) Styles {
+// color converts a palette entry into a lipgloss colour. It exists only to keep
+// the style table below readable.
+func color(hex string) lipgloss.Color { return lipgloss.Color(hex) }
+
+func colorStyles(r *lipgloss.Renderer, p palette) Styles {
 	hidden := r.NewStyle().
-		Foreground(lipgloss.Color("#8C8C8C")).
-		Background(lipgloss.Color("#C0C0C0"))
-	revealed := r.NewStyle().
-		Background(lipgloss.Color("#E0E0E0"))
+		Foreground(color(p.hiddenFg)).
+		Background(color(p.hiddenBg))
+	revealed := r.NewStyle().Background(color(p.revealedBg))
 
 	var digits [9]lipgloss.Style
 	for i := 1; i <= 8; i++ {
-		digits[i] = revealed.
-			Foreground(lipgloss.Color(digitColors[i])).
-			Bold(true)
+		digits[i] = revealed.Foreground(color(p.digits[i])).Bold(true)
 	}
 
 	return Styles{
 		Hidden:     hidden,
 		Revealed:   revealed,
-		Flagged:    hidden.Foreground(lipgloss.Color("#CC0000")).Bold(true),
-		Questioned: hidden.Foreground(lipgloss.Color("#0000CC")).Bold(true),
-		Mine:       revealed.Foreground(lipgloss.Color("#CC0000")).Bold(true),
-		Cursor:     r.NewStyle().Background(lipgloss.Color("#000080")).Foreground(lipgloss.Color("#FFFFFF")).Bold(true),
+		Flagged:    hidden.Foreground(color(p.flagFg)).Bold(true),
+		Questioned: hidden.Foreground(color(p.questionFg)).Bold(true),
+		Mine:       revealed.Foreground(color(p.mineFg)).Bold(true),
+		Cursor:     r.NewStyle().Background(color(p.cursorBg)).Foreground(color(p.cursorFg)).Bold(true),
 		Digits:     digits,
-		HUD:        r.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Background(lipgloss.Color("#606060")),
-		StatusBar:  r.NewStyle().Foreground(lipgloss.Color("#909090")),
-		Overlay:    r.NewStyle().Background(lipgloss.Color("#1C1C1C")).Foreground(lipgloss.Color("#FFFFFF")).Padding(1, 2),
-		Title:      r.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFD700")),
-		Warning:    r.NewStyle().Bold(true).Foreground(lipgloss.Color("#FF8800")),
+		HUD:        r.NewStyle().Bold(true).Foreground(color(p.hudFg)).Background(color(p.hudBg)),
+		StatusBar:  r.NewStyle().Foreground(color(p.statusFg)),
+		Overlay:    r.NewStyle().Background(color(p.overlayBg)).Foreground(color(p.overlayFg)).Padding(1, 2),
+		Title:      r.NewStyle().Bold(true).Foreground(color(p.titleFg)),
+		Warning:    r.NewStyle().Bold(true).Foreground(color(p.warningFg)),
 	}
 }
