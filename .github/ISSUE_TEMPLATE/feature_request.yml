@@ -7,7 +7,8 @@ body:
       value: |
         This project treats every new option as a question the user has to
         answer, so proposals that work without configuration are much easier to
-        accept. See [docs/design.md](../../docs/design.md) for the reasoning.
+        accept. See [docs/design.md](https://github.com/TF0119/minesweeper/blob/main/docs/design.md)
+        for the reasoning.
 
   - type: textarea
     id: problem
