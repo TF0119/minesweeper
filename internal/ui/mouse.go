@@ -28,15 +28,22 @@ func classifyMouseEvent(msg tea.MouseMsg, lastBtn tea.MouseButton) (click mouseC
 		storeBtn = btn
 	}
 
-	// Shift+left: flag (WSL / Windows Terminal often paste on right-click)
-	if msg.Shift && btn == tea.MouseButtonLeft {
+	// Shift+left: flag (WSL / Windows Terminal often paste on right-click).
+	// Act on press only; release would toggle twice.
+	if msg.Shift && btn == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
 		return mouseClick{flag: true}, storeBtn
 	}
 
 	switch btn {
 	case tea.MouseButtonRight, tea.MouseButtonMiddle:
-		if msg.Action == tea.MouseActionPress || msg.Action == tea.MouseActionRelease {
+		switch msg.Action {
+		case tea.MouseActionRelease:
 			return mouseClick{flag: true}, storeBtn
+		case tea.MouseActionPress:
+			// X10 terminals sometimes emit only a press with the legacy Type set.
+			if msg.Button == tea.MouseButtonNone && buttonFromLegacyType(msg.Type) != tea.MouseButtonNone {
+				return mouseClick{flag: true}, storeBtn
+			}
 		}
 	case tea.MouseButtonLeft:
 		if msg.Action == tea.MouseActionPress {

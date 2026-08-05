@@ -15,9 +15,9 @@ func TestClassifyMouseEvent(t *testing.T) {
 		wantSt tea.MouseButton
 	}{
 		{
-			name:   "right press",
+			name:   "right press waits for release",
 			msg:    tea.MouseMsg{Button: tea.MouseButtonRight, Action: tea.MouseActionPress},
-			want:   mouseClick{flag: true},
+			want:   mouseClick{},
 			wantSt: tea.MouseButtonRight,
 		},
 		{

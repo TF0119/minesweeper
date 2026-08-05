@@ -5,6 +5,7 @@ import (
 
 	"github.com/TF0119/minesweeper/internal/game"
 	"github.com/TF0119/minesweeper/internal/storage"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func testModel() Model {
@@ -85,5 +86,30 @@ func TestPresetIndexFindsCurrentDifficulty(t *testing.T) {
 	m.difficulty = game.Difficulty{Preset: game.Custom, Width: 5, Height: 5, Mines: 3}
 	if got := m.presetIndex(); got != 0 {
 		t.Errorf("custom difficulty should default to index 0, got %d", got)
+	}
+}
+
+// SGR terminals deliver press and release for the same click. Acting on both
+// would cycle the mark twice and flash a flag that immediately disappears.
+func TestRightClickPressAndReleaseFlagsOnce(t *testing.T) {
+	m := testModel()
+	m.width, m.height = 120, 40
+	m.vp = fit(m.vp, m.width, m.height, m.board.Width(), m.board.Height())
+	c := game.Coord{X: 4, Y: 4}
+	m.cursor = c
+
+	press := tea.MouseMsg{X: 4*cellWidth + 1, Y: 1 + c.Y, Button: tea.MouseButtonRight, Action: tea.MouseActionPress}
+	release := tea.MouseMsg{X: press.X, Y: press.Y, Button: tea.MouseButtonRight, Action: tea.MouseActionRelease}
+
+	next, _ := m.handleMouse(press)
+	m = next.(Model)
+	if got := m.board.CellView(c).State; got != game.CellHidden {
+		t.Fatalf("after press: state = %v, want hidden (wait for release)", got)
+	}
+
+	next, _ = m.handleMouse(release)
+	m = next.(Model)
+	if got := m.board.CellView(c).State; got != game.CellFlagged {
+		t.Errorf("after release: state = %v, want flagged", got)
 	}
 }
