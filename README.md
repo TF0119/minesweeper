@@ -1,23 +1,27 @@
+<div align="center">
+
 # minesweeper
 
-Terminal Minesweeper with a testable game core separated from the TUI.
+**Terminal Minesweeper with a testable game core separated from the TUI.**
 
-Classic rules — first-click safety, flood fill, chord, timer, high scores — plus
-shareable board seeds and a daily challenge.
+Classic rules — first-click safety, flood fill, chord, timer, high scores —
+plus shareable board seeds and a daily challenge.
 
-```
- Mines:007  Time:042  Best:038  [beginner]  seed 1487233901
-   1  1
-   1     1  1  1
-   1  1  1     2  F
-         1  1  3  2
- arrows/hjkl move · space reveal · f flag · c chord · n new · r restart · ? help · q quit
-```
+[![CI](https://github.com/TF0119/minesweeper/actions/workflows/ci.yml/badge.svg)](https://github.com/TF0119/minesweeper/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/TF0119/minesweeper?logo=github)](https://github.com/TF0119/minesweeper/releases/latest)
+[![Go Report Card](https://goreportcard.com/badge/github.com/TF0119/minesweeper)](https://goreportcard.com/report/github.com/TF0119/minesweeper)
+[![Go Reference](https://pkg.go.dev/badge/github.com/TF0119/minesweeper.svg)](https://pkg.go.dev/github.com/TF0119/minesweeper)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+<img src="docs/demo.gif" alt="Playing a seeded beginner board: the opening move cascades, a mine is flagged, and a chord opens the rest." width="820">
+
+</div>
 
 ## Install
 
-Download a binary from the [releases page](https://github.com/TF0119/minesweeper/releases),
-or build it yourself with Go 1.22+:
+Download a binary for your platform from the
+[releases page](https://github.com/TF0119/minesweeper/releases/latest), or build
+it yourself with Go 1.25+:
 
 ```bash
 go install github.com/TF0119/minesweeper/cmd/minesweeper@latest
@@ -66,7 +70,8 @@ Mouse: left click reveals, right click or Shift+left click flags. Some terminals
 click is the reliable option there.
 
 Boards larger than the window scroll to follow the cursor, so Expert works on
-small terminals.
+small terminals. Cell state never depends on colour alone, so `-no-color`,
+`NO_COLOR=1`, and monochrome terminals stay playable.
 
 ## Architecture
 
@@ -84,12 +89,16 @@ See [docs/design.md](docs/design.md) for the design decisions behind the split.
 ## Development
 
 ```bash
-go test ./...
-go build -o bin/minesweeper ./cmd/minesweeper
+make test     # go test -race ./...
+make build    # binary at bin/minesweeper
+make lint     # gofmt, go vet, golangci-lint
+make demo     # re-record docs/demo.gif (needs vhs)
 ```
 
-Issues and pull requests are welcome.
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the
+workflow and [docs/design.md](docs/design.md) for the reasoning you are expected
+to work with.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) © Takeru Fukuda
