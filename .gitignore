@@ -6,3 +6,4 @@
 *.swo
 .idea/
 .vscode/
+dist
