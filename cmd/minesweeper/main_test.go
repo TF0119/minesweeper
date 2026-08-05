@@ -91,3 +91,21 @@ func TestRunVersionFlag(t *testing.T) {
 		t.Errorf("-version should exit cleanly, got %v", err)
 	}
 }
+
+func TestBuildVersion(t *testing.T) {
+	restore := version
+	t.Cleanup(func() { version = restore })
+
+	version = "v1.2.3"
+	if got := buildVersion(); got != version {
+		t.Errorf("buildVersion() = %q, want the linker flag value %q", got, version)
+	}
+
+	// Without a linker flag the toolchain's build info answers instead. Its
+	// exact value depends on how the test binary was built; what matters is
+	// that -version never prints a blank.
+	version = ""
+	if got := buildVersion(); got == "" {
+		t.Error("buildVersion() returned an empty string")
+	}
+}

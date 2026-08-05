@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime/debug"
 	"time"
 
 	"github.com/TF0119/minesweeper/internal/game"
@@ -11,8 +12,25 @@ import (
 	"github.com/TF0119/minesweeper/internal/ui"
 )
 
-// version is overridden at build time via -ldflags "-X main.version=...".
-var version = "dev"
+// version is injected into release builds via -ldflags "-X main.version=...".
+// It stays empty for binaries produced any other way.
+var version string
+
+// buildVersion reports the version to show the user. Release archives carry it
+// in a linker flag, but `go install module@version` sets no flags, so fall back
+// to the module version the toolchain embeds. Without either — a build from an
+// untagged tree — say so rather than inventing a number.
+func buildVersion() string {
+	if version != "" {
+		return version
+	}
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		if v := bi.Main.Version; v != "" && v != "(devel)" {
+			return v
+		}
+	}
+	return "devel"
+}
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
@@ -38,7 +56,7 @@ func run(args []string) error {
 	}
 
 	if *showVersion {
-		fmt.Println("minesweeper", version)
+		fmt.Println("minesweeper", buildVersion())
 		return nil
 	}
 
