@@ -27,6 +27,11 @@ it yourself with Go 1.25+:
 go install github.com/TF0119/minesweeper/cmd/minesweeper@latest
 ```
 
+That installs into `$(go env GOPATH)/bin` — usually `~/go/bin`, which has to be
+on your `PATH`. Running the same command again upgrades to the newest tagged
+release; `@latest` follows release tags, not `main`. Check what you have with
+`minesweeper -version`.
+
 ## Usage
 
 ```bash
