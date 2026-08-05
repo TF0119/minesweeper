@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Hidden cells were drawn as blank space and told apart from empty revealed
+  cells by their background shade alone, which made `-no-color`, `NO_COLOR=1`,
+  and colourless terminals unplayable. Hidden cells now carry a visible glyph,
+  and `NO_COLOR`/`TERM=dumb` switch to the monochrome styles so the cursor keeps
+  its highlight
+
+### Added
+
+- Demo recording in the README, generated from `docs/demo.tape` with VHS
+- `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, and issue and pull
+  request templates
+- `Makefile` with the same checks CI runs, plus `.editorconfig`
+- golangci-lint in CI, weekly Dependabot updates, and read-only workflow
+  permissions
+
 ## [0.2.0] - 2026-08-05
 
 ### Added
