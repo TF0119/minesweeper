@@ -7,6 +7,7 @@ import (
 
 	"github.com/TF0119/minesweeper/internal/game"
 	"github.com/TF0119/minesweeper/internal/storage"
+	"github.com/charmbracelet/lipgloss"
 )
 
 func TestSeedLabelDistinguishesDailyBoards(t *testing.T) {
@@ -155,5 +156,41 @@ func TestStatsScreenShowsEveryDifficulty(t *testing.T) {
 	// Intermediate has never been played, so it has no average to show.
 	if !strings.Contains(body, "—") {
 		t.Error("an unplayed difficulty should show a placeholder, not a fake 0s")
+	}
+}
+
+func TestStatusBarShrinksToFitTheTerminal(t *testing.T) {
+	m := testModel()
+
+	widest := lipgloss.Width(statusHints[0])
+	tests := []struct {
+		name  string
+		width int
+		want  string
+	}{
+		{"unknown size assumes room", 0, statusHints[0]},
+		{"wide terminal", widest + 10, statusHints[0]},
+		{"eighty columns", 80, statusHints[1]},
+		{"very narrow", 20, statusHints[len(statusHints)-1]},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m.width = tt.width
+			if got := m.renderStatusBar(); !strings.Contains(got, strings.TrimSpace(tt.want)) {
+				t.Errorf("width %d rendered %q, want the hint %q", tt.width, got, tt.want)
+			}
+		})
+	}
+}
+
+// Every hint has to actually fit the width it is chosen for, or shrinking
+// achieves nothing.
+func TestNarrowestStatusHintFitsASmallTerminal(t *testing.T) {
+	const narrowest = 40
+	if got := lipgloss.Width(statusHints[len(statusHints)-1]); got > narrowest {
+		t.Errorf("the shortest hint is %d columns, too wide for a %d-column terminal", got, narrowest)
+	}
+	if got := lipgloss.Width(statusHints[1]); got > 80 {
+		t.Errorf("the middle hint is %d columns, too wide for 80", got)
 	}
 }

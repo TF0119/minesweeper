@@ -185,10 +185,26 @@ func (m Model) renderScrollIndicator() string {
 	))
 }
 
+// statusHints are the status bar texts from most to least detailed. Listing
+// every key stopped fitting an 80-column terminal, and a wrapped status bar
+// pushes the board off screen.
+var statusHints = []string{
+	" arrows/hjkl move · space reveal · f mark · c chord · n new · r restart · d difficulty · s stats · ? help · q quit ",
+	" move · space reveal · f mark · c chord · n new · s stats · ? help · q quit ",
+	" ? help · q quit ",
+}
+
+// renderStatusBar shows the most detailed hint line that fits.
 func (m Model) renderStatusBar() string {
-	return m.styles.StatusBar.Render(
-		" arrows/hjkl move · space reveal · f mark · c chord · n new · r restart · d difficulty · s stats · ? help · q quit ",
-	)
+	hint := statusHints[len(statusHints)-1]
+	for _, candidate := range statusHints {
+		// A zero width means the terminal size is not known yet; assume room.
+		if m.width == 0 || lipgloss.Width(candidate) <= m.width {
+			hint = candidate
+			break
+		}
+	}
+	return m.styles.StatusBar.Render(hint)
 }
 
 func (m Model) renderOverlay(title, body string) string {
