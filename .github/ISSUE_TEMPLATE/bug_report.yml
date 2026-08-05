@@ -1,0 +1,50 @@
+name: Bug report
+description: Something behaves differently from what the rules or the docs promise.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Boards are reproducible from their seed, so the seed shown in the status
+        line is usually all it takes to reproduce a board bug exactly.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, and what the game did instead of what you expected.
+      placeholder: |
+        Pressed `c` on a 2 with two flags around it, and nothing was revealed.
+    validations:
+      required: true
+
+  - type: input
+    id: seed
+    attributes:
+      label: Seed and difficulty
+      description: Copy the status line, or run with `-seed` to pin the board.
+      placeholder: "seed 1487233901, beginner"
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `minesweeper -version`.
+      placeholder: "v0.2.0"
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Terminal and OS
+      description: Terminal emulator matters most for input and colour bugs.
+      placeholder: "WezTerm on Windows 11 / WSL2 Ubuntu 24.04"
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Screenshots, recordings, or the contents of `~/.config/minesweeper/`.

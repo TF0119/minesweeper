@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Question or idea
+    url: https://github.com/TF0119/minesweeper/discussions
+    about: Ask about usage, share a seed, or float an idea before opening an issue.
+  - name: Security vulnerability
+    url: https://github.com/TF0119/minesweeper/security/advisories/new
+    about: Report privately instead of opening a public issue.

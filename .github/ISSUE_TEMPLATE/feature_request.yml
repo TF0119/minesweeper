@@ -1,0 +1,41 @@
+name: Feature request
+description: Suggest a capability the game is missing.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This project treats every new option as a question the user has to
+        answer, so proposals that work without configuration are much easier to
+        accept. See [docs/design.md](../../docs/design.md) for the reasoning.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is hard to do today
+      description: Describe the situation you hit, not the solution you have in mind.
+      placeholder: |
+        On a 30x16 board I lose track of which region I am looking at.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Including "do nothing" — say why the current behaviour is not enough.
+
+  - type: checkboxes
+    id: shape
+    attributes:
+      label: Shape of the change
+      options:
+        - label: This can work with a sensible default, without a new flag or setting.
+        - label: This changes the game rules rather than the interface.
