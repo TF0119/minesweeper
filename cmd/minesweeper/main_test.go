@@ -1,0 +1,93 @@
+package main
+
+import (
+	"testing"
+	"time"
+
+	"github.com/TF0119/minesweeper/internal/game"
+	"github.com/TF0119/minesweeper/internal/storage"
+)
+
+func TestResolveDifficultyPrecedence(t *testing.T) {
+	cfg := storage.DefaultConfig()
+	cfg.LastPreset = "expert"
+	cfg.Custom = storage.Custom{Width: 20, Height: 10, Mines: 30}
+
+	tests := []struct {
+		name       string
+		flagName   string
+		w, h, m    int
+		wantPreset game.Preset
+		wantW      int
+		wantErr    bool
+	}{
+		{"config default", "", 0, 0, 0, game.Expert, 30, false},
+		{"flag overrides config", "beginner", 0, 0, 0, game.Beginner, 9, false},
+		{"bare dimensions imply custom", "", 12, 8, 15, game.Custom, 12, false},
+		{"custom fills gaps from config", "custom", 0, 0, 0, game.Custom, 20, false},
+		{"unknown name errors", "wizard", 0, 0, 0, 0, 0, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d, err := resolveDifficulty(tt.flagName, tt.w, tt.h, tt.m, cfg)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("err = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+			if d.Preset != tt.wantPreset || d.Width != tt.wantW {
+				t.Errorf("got %+v, want preset %v width %d", d, tt.wantPreset, tt.wantW)
+			}
+		})
+	}
+}
+
+func TestResolveSeed(t *testing.T) {
+	todaysDaily := game.DailySeed(time.Now())
+
+	t.Run("explicit number", func(t *testing.T) {
+		got, err := resolveSeed("777", false)
+		if err != nil || got != game.Seed(777) {
+			t.Fatalf("got %v, err %v", got, err)
+		}
+	})
+
+	t.Run("daily flag", func(t *testing.T) {
+		got, err := resolveSeed("", true)
+		if err != nil || got != todaysDaily {
+			t.Fatalf("got %v, want %v (err %v)", got, todaysDaily, err)
+		}
+	})
+
+	t.Run("daily keyword", func(t *testing.T) {
+		got, err := resolveSeed(game.DailyKeyword, false)
+		if err != nil || got != todaysDaily {
+			t.Fatalf("got %v, want %v (err %v)", got, todaysDaily, err)
+		}
+	})
+
+	t.Run("conflicting flags", func(t *testing.T) {
+		if _, err := resolveSeed("123", true); err == nil {
+			t.Error("expected an error when -daily and -seed disagree")
+		}
+	})
+
+	t.Run("invalid seed", func(t *testing.T) {
+		if _, err := resolveSeed("not-a-seed", false); err == nil {
+			t.Error("expected an error for a non-numeric seed")
+		}
+	})
+
+	t.Run("no seed is random", func(t *testing.T) {
+		if _, err := resolveSeed("", false); err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+}
+
+func TestRunVersionFlag(t *testing.T) {
+	if err := run([]string{"-version"}); err != nil {
+		t.Errorf("-version should exit cleanly, got %v", err)
+	}
+}

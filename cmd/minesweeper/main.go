@@ -3,89 +3,144 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
+	"time"
 
-	"github.com/takeru0119/minesweeper/internal/game"
-	"github.com/takeru0119/minesweeper/internal/storage"
-	"github.com/takeru0119/minesweeper/internal/ui"
+	"github.com/TF0119/minesweeper/internal/game"
+	"github.com/TF0119/minesweeper/internal/storage"
+	"github.com/TF0119/minesweeper/internal/ui"
 )
 
-const version = "0.1.0"
+// version is overridden at build time via -ldflags "-X main.version=...".
+var version = "dev"
 
 func main() {
-	difficultyFlag := flag.String("difficulty", "", "beginner|intermediate|expert|custom")
-	widthFlag := flag.Int("width", 0, "custom board width")
-	heightFlag := flag.Int("height", 0, "custom board height")
-	minesFlag := flag.Int("mines", 0, "custom mine count")
-	noColor := flag.Bool("no-color", false, "disable colors")
-	showVersion := flag.Bool("version", false, "print version")
-	flag.Parse()
+	if err := run(os.Args[1:]); err != nil {
+		fmt.Fprintln(os.Stderr, "minesweeper:", err)
+		os.Exit(1)
+	}
+}
+
+func run(args []string) error {
+	fs := flag.NewFlagSet("minesweeper", flag.ContinueOnError)
+	var (
+		difficulty  = fs.String("difficulty", "", "beginner, intermediate, expert or custom")
+		width       = fs.Int("width", 0, "custom board width")
+		height      = fs.Int("height", 0, "custom board height")
+		mines       = fs.Int("mines", 0, "custom mine count")
+		seedFlag    = fs.String("seed", "", `board seed: a number, or "daily" for today's challenge`)
+		daily       = fs.Bool("daily", false, `shorthand for -seed daily`)
+		noColor     = fs.Bool("no-color", false, "disable colors")
+		showVersion = fs.Bool("version", false, "print version and exit")
+	)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
 
 	if *showVersion {
 		fmt.Println("minesweeper", version)
-		os.Exit(0)
+		return nil
 	}
 
-	cfg, err := storage.LoadConfig()
+	config := loadConfig()
+	scores := loadHighScores()
+
+	d, err := resolveDifficulty(*difficulty, *width, *height, *mines, config)
 	if err != nil {
-		log.Printf("config: %v (using defaults)", err)
-		cfg = storage.DefaultConfig()
+		return err
 	}
-
-	scores, err := storage.LoadHighScores()
-	if err != nil {
-		log.Printf("highscores: %v (using defaults)", err)
-		scores = storage.DefaultHighScores()
-	}
-
-	d := resolveDifficulty(*difficultyFlag, *widthFlag, *heightFlag, *minesFlag, cfg)
 	if err := d.Validate(); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	cfg.LastPreset = d.Preset.String()
-	if d.Preset == game.Custom {
-		cfg.Custom = storage.Custom{Width: d.Width, Height: d.Height, Mines: d.Mines}
+	seed, err := resolveSeed(*seedFlag, *daily)
+	if err != nil {
+		return err
 	}
-	_ = storage.SaveConfig(cfg)
 
-	if err := ui.Run(ui.Options{
+	config = rememberDifficulty(config, d)
+
+	return ui.Run(ui.Options{
 		Difficulty: d,
-		Config:     cfg,
+		Seed:       seed,
+		Config:     config,
 		HighScores: scores,
 		NoColor:    *noColor,
-	}); err != nil {
-		log.Fatal(err)
-	}
+	})
 }
 
-func resolveDifficulty(flagDiff string, w, h, mines int, cfg storage.Config) game.Difficulty {
-	if flagDiff != "" {
-		p, ok := game.PresetFromString(flagDiff)
+// loadConfig falls back to defaults so a damaged file never blocks play.
+func loadConfig() storage.Config {
+	c, err := storage.LoadConfig()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "minesweeper: using default config:", err)
+		return storage.DefaultConfig()
+	}
+	return c
+}
+
+func loadHighScores() storage.HighScores {
+	h, err := storage.LoadHighScores()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "minesweeper: using empty high scores:", err)
+		return storage.DefaultHighScores()
+	}
+	return h
+}
+
+// resolveDifficulty applies the precedence documented in the README:
+// defaults, then the config file, then flags.
+func resolveDifficulty(name string, w, h, mines int, c storage.Config) (game.Difficulty, error) {
+	if name != "" {
+		preset, ok := game.PresetFromString(name)
 		if !ok {
-			log.Fatalf("unknown difficulty: %s", flagDiff)
+			return game.Difficulty{}, fmt.Errorf("unknown difficulty %q", name)
 		}
-		if p == game.Custom {
-			return customDifficulty(w, h, mines, cfg)
+		if preset != game.Custom {
+			return game.PresetDifficulty(preset), nil
 		}
-		return game.PresetDifficulty(p)
+		return customDifficulty(w, h, mines, c), nil
 	}
 	if w > 0 || h > 0 || mines > 0 {
-		return customDifficulty(w, h, mines, cfg)
+		return customDifficulty(w, h, mines, c), nil
 	}
-	return storage.DifficultyFromConfig(cfg)
+	return storage.DifficultyFromConfig(c), nil
 }
 
-func customDifficulty(w, h, mines int, cfg storage.Config) game.Difficulty {
+func customDifficulty(w, h, mines int, c storage.Config) game.Difficulty {
 	if w == 0 {
-		w = cfg.Custom.Width
+		w = c.Custom.Width
 	}
 	if h == 0 {
-		h = cfg.Custom.Height
+		h = c.Custom.Height
 	}
 	if mines == 0 {
-		mines = cfg.Custom.Mines
+		mines = c.Custom.Mines
 	}
 	return game.Difficulty{Preset: game.Custom, Width: w, Height: h, Mines: mines}
+}
+
+func resolveSeed(seedFlag string, daily bool) (game.Seed, error) {
+	if daily && seedFlag != "" && seedFlag != game.DailyKeyword {
+		return 0, fmt.Errorf("-daily conflicts with -seed %s", seedFlag)
+	}
+	if daily {
+		seedFlag = game.DailyKeyword
+	}
+	if seedFlag == "" {
+		return game.RandomSeed(), nil
+	}
+	return game.ParseSeed(seedFlag, time.Now())
+}
+
+// rememberDifficulty persists the chosen difficulty for the next launch.
+func rememberDifficulty(c storage.Config, d game.Difficulty) storage.Config {
+	c.LastPreset = d.Preset.String()
+	if d.Preset == game.Custom {
+		c.Custom = storage.Custom{Width: d.Width, Height: d.Height, Mines: d.Mines}
+	}
+	if err := storage.SaveConfig(c); err != nil {
+		fmt.Fprintln(os.Stderr, "minesweeper: could not save config:", err)
+	}
+	return c
 }
