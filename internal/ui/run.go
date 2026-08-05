@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/TF0119/minesweeper/internal/game"
+	"github.com/TF0119/minesweeper/internal/storage"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/takeru0119/minesweeper/internal/game"
-	"github.com/takeru0119/minesweeper/internal/storage"
 	"golang.org/x/term"
 )
 
 // Options configures the UI run.
 type Options struct {
 	Difficulty game.Difficulty
+	Seed       game.Seed
 	Config     storage.Config
 	HighScores storage.HighScores
 	NoColor    bool
@@ -25,7 +26,7 @@ func Run(opts Options) error {
 	}
 
 	m := NewModel(opts)
-	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
+	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseAllMotion())
 	_, err := p.Run()
 	return err
 }

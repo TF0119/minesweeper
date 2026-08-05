@@ -7,6 +7,7 @@ type Styles struct {
 	Hidden    lipgloss.Style
 	Revealed  lipgloss.Style
 	Flagged   lipgloss.Style
+	Mine      lipgloss.Style
 	Cursor    lipgloss.Style
 	Digits    [9]lipgloss.Style
 	HUD       lipgloss.Style
@@ -24,6 +25,7 @@ func NewStyles(useColor bool) Styles {
 			Hidden:    base.Copy().Bold(true),
 			Revealed:  base,
 			Flagged:   base.Copy().Bold(true),
+			Mine:      base.Copy().Bold(true),
 			Cursor:    base.Copy().Reverse(true).Bold(true),
 			HUD:       base.Copy().Bold(true),
 			StatusBar: base,
@@ -63,6 +65,7 @@ func NewStyles(useColor bool) Styles {
 		Hidden:    hidden,
 		Revealed:  revealed,
 		Flagged:   hidden.Copy().Foreground(lipgloss.Color("#FF0000")),
+		Mine:      revealed.Copy().Foreground(lipgloss.Color("#FF0000")).Bold(true),
 		Cursor:    lipgloss.NewStyle().Background(lipgloss.Color("#000080")).Foreground(lipgloss.Color("#FFFFFF")).Bold(true),
 		Digits:    digits,
 		HUD:       lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Background(lipgloss.Color("#808080")).Padding(0, 1),

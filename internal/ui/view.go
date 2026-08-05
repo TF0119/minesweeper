@@ -3,12 +3,20 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
+	"github.com/TF0119/minesweeper/internal/game"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/takeru0119/minesweeper/internal/game"
 )
 
-const cellWidth = 3
+const (
+	cellWidth = 3
+	// maxDisplaySeconds matches the classic three-digit timer.
+	maxDisplaySeconds = 999
+)
+
+// menuPresets is the difficulty menu, shared by rendering and key handling.
+var menuPresets = []game.Preset{game.Beginner, game.Intermediate, game.Expert}
 
 // Screen identifies the active UI screen.
 type Screen int
@@ -21,191 +29,16 @@ const (
 	ScreenWin
 )
 
-func (m Model) renderCell(x, y int) string {
-	c := game.Coord{X: x, Y: y}
-	view := m.board.CellView(c)
-	isCursor := m.cursor.X == x && m.cursor.Y == y && m.screen == ScreenPlaying
-
-	var content string
-	switch view.State {
-	case game.CellHidden:
-		content = m.hiddenChar()
-	case game.CellFlagged:
-		content = m.flagChar()
-	case game.CellRevealed:
-		if view.ShowMine {
-			content = m.mineChar()
-		} else if view.Adjacent == 0 {
-			content = " "
-		} else {
-			content = fmt.Sprintf("%d", view.Adjacent)
-		}
-	}
-
-	text := centerCell(content, cellWidth)
-	var styled string
-	switch {
-	case isCursor:
-		styled = m.styles.Cursor.Render(text)
-	case view.State == game.CellFlagged:
-		styled = m.styles.Flagged.Render(text)
-	case view.State == game.CellRevealed:
-		if view.ShowMine {
-			styled = m.styles.Revealed.Copy().Foreground(lipgloss.Color("#FF0000")).Bold(true).Render(text)
-		} else if view.Adjacent > 0 {
-			styled = m.styles.Digits[view.Adjacent].Render(text)
-		} else {
-			styled = m.styles.Revealed.Render(text)
-		}
-	default:
-		styled = m.styles.Hidden.Render(text)
-	}
-	return styled
-}
-
-func centerCell(s string, width int) string {
-	if len(s) >= width {
-		return s[:width]
-	}
-	pad := width - len(s)
-	left := pad / 2
-	right := pad - left
-	return strings.Repeat(" ", left) + s + strings.Repeat(" ", right)
-}
-
-func (m Model) hiddenChar() string {
-	if m.config.UseEmoji {
-		return "·"
-	}
-	return " "
-}
-
-func (m Model) flagChar() string {
-	if m.config.UseEmoji {
-		return "F"
-	}
-	return "F"
-}
-
-func (m Model) mineChar() string {
-	if m.config.UseEmoji {
-		return "*"
-	}
-	return "*"
-}
-
-func (m Model) renderBoard() string {
-	var rows []string
-	for y := 0; y < m.board.Height(); y++ {
-		var cells []string
-		for x := 0; x < m.board.Width(); x++ {
-			cells = append(cells, m.renderCell(x, y))
-		}
-		rows = append(rows, lipgloss.JoinHorizontal(lipgloss.Top, cells...))
-	}
-	return lipgloss.JoinVertical(lipgloss.Left, rows...)
-}
-
-func (m Model) renderHUD() string {
-	key := m.difficulty.Key()
-	best := m.highscores.Best(key)
-	bestStr := "---"
-	if best >= 0 {
-		bestStr = fmt.Sprintf("%03d", best)
-	}
-	mines := fmt.Sprintf("%03d", m.board.RemainingMines())
-	time := fmt.Sprintf("%03d", m.elapsed)
-	preset := m.difficulty.Preset.String()
-	if m.difficulty.Preset == game.Custom {
-		preset = fmt.Sprintf("custom %dx%d", m.difficulty.Width, m.difficulty.Height)
-	}
-	line := fmt.Sprintf(" Mines:%s  Time:%s  Best:%s  [%s] ", mines, time, bestStr, preset)
-	return m.styles.HUD.Render(line)
-}
-
-func (m Model) renderStatusBar() string {
-	return m.styles.StatusBar.Render(" ↑↓←→/hjkl move · Space reveal · f flag · c chord · n new · d difficulty · ? help · q quit ")
-}
-
-func (m Model) renderOverlay(title, body string) string {
-	content := m.styles.Title.Render(title) + "\n\n" + body
-	return m.styles.Overlay.Render(content)
-}
-
-func (m Model) renderDifficultyMenu() string {
-	options := []struct {
-		p    game.Preset
-		label string
-	}{
-		{game.Beginner, "Beginner (9×9, 10 mines)"},
-		{game.Intermediate, "Intermediate (16×16, 40 mines)"},
-		{game.Expert, "Expert (30×16, 99 mines)"},
-	}
-	var lines []string
-	for i, opt := range options {
-		prefix := "  "
-		if i == m.menuIndex {
-			prefix = "> "
-		}
-		lines = append(lines, prefix+opt.label)
-	}
-	lines = append(lines, "", "Enter: select  Esc: back")
-	return m.renderOverlay("Difficulty", strings.Join(lines, "\n"))
-}
-
-func (m Model) renderHelp() string {
-	body := `↑↓←→ / hjkl     Move cursor
-Space / Enter    Reveal cell
-f                Toggle flag
-c                Chord (auto-reveal)
-n                New game
-d                Difficulty menu
-?                This help
-q / Ctrl+C       Quit
-
-Mouse: left=reveal, right=flag`
-	return m.renderOverlay("Help", body)
-}
-
-func (m Model) renderGameOver() string {
-	return m.renderOverlay("Game Over", fmt.Sprintf("You hit a mine!\n\nTime: %03d seconds\n\nPress n for new game", m.elapsed))
-}
-
-func (m Model) renderWin() string {
-	key := m.difficulty.Key()
-	best := m.highscores.Best(key)
-	msg := fmt.Sprintf("You win!\n\nTime: %03d seconds", m.elapsed)
-	if best >= 0 {
-		msg += fmt.Sprintf("\nBest: %03d seconds", best)
-	}
-	msg += "\n\nPress n for new game"
-	return m.renderOverlay("Victory", msg)
-}
-
-func (m Model) checkTerminalSize() string {
-	needW := m.board.Width()*cellWidth + 4
-	needH := m.board.Height() + 6
-	if m.width > 0 && m.width < needW {
-		return fmt.Sprintf("Terminal width %d < required %d", m.width, needW)
-	}
-	if m.height > 0 && m.height < needH {
-		return fmt.Sprintf("Terminal height %d < required %d", m.height, needH)
-	}
-	return ""
-}
-
 // View renders the TUI.
 func (m Model) View() string {
 	if m.quitting {
 		return ""
 	}
 
-	var parts []string
-	parts = append(parts, m.renderHUD())
-	parts = append(parts, m.renderBoard())
+	parts := []string{m.renderHUD(), m.renderBoard()}
 
-	if warn := m.checkTerminalSize(); warn != "" {
-		parts = append(parts, m.styles.Warning.Render("Warning: "+warn))
+	if s := m.renderScrollIndicator(); s != "" {
+		parts = append(parts, s)
 	}
 	if m.errMsg != "" {
 		parts = append(parts, m.styles.Warning.Render(m.errMsg))
@@ -224,4 +57,157 @@ func (m Model) View() string {
 
 	parts = append(parts, m.renderStatusBar())
 	return lipgloss.JoinVertical(lipgloss.Left, parts...)
+}
+
+func (m Model) renderCell(c game.Coord) string {
+	view := m.board.CellView(c)
+	isCursor := c == m.cursor && m.screen == ScreenPlaying
+
+	var content string
+	switch view.State {
+	case game.CellHidden:
+		content = m.glyphs.hidden
+	case game.CellFlagged:
+		content = m.glyphs.flag
+	case game.CellRevealed:
+		switch {
+		case view.ShowMine:
+			content = m.glyphs.mine
+		case view.Adjacent == 0:
+			content = " "
+		default:
+			content = fmt.Sprintf("%d", view.Adjacent)
+		}
+	}
+
+	text := centerCell(content, cellWidth)
+	switch {
+	case isCursor:
+		return m.styles.Cursor.Render(text)
+	case view.State == game.CellFlagged:
+		return m.styles.Flagged.Render(text)
+	case view.State == game.CellRevealed && view.ShowMine:
+		return m.styles.Mine.Render(text)
+	case view.State == game.CellRevealed && view.Adjacent > 0:
+		return m.styles.Digits[view.Adjacent].Render(text)
+	case view.State == game.CellRevealed:
+		return m.styles.Revealed.Render(text)
+	default:
+		return m.styles.Hidden.Render(text)
+	}
+}
+
+// centerCell pads s to width columns. Glyphs are single-width, so rune count
+// is a valid column count here.
+func centerCell(s string, width int) string {
+	n := utf8.RuneCountInString(s)
+	if n >= width {
+		return s
+	}
+	pad := width - n
+	left := pad / 2
+	return strings.Repeat(" ", left) + s + strings.Repeat(" ", pad-left)
+}
+
+func (m Model) renderBoard() string {
+	rows := make([]string, 0, m.vp.rows)
+	for row := 0; row < m.vp.rows; row++ {
+		cells := make([]string, 0, m.vp.cols)
+		for col := 0; col < m.vp.cols; col++ {
+			cells = append(cells, m.renderCell(game.Coord{
+				X: m.vp.offsetX + col,
+				Y: m.vp.offsetY + row,
+			}))
+		}
+		rows = append(rows, lipgloss.JoinHorizontal(lipgloss.Top, cells...))
+	}
+	return lipgloss.JoinVertical(lipgloss.Left, rows...)
+}
+
+func (m Model) renderHUD() string {
+	best := "---"
+	if b := m.highscores.Best(m.difficulty.Key()); b >= 0 {
+		best = fmt.Sprintf("%03d", b)
+	}
+	line := fmt.Sprintf(
+		" Mines:%03d  Time:%03d  Best:%s  [%s]  %s ",
+		m.board.RemainingMines(), m.elapsed, best, m.difficultyLabel(), m.seedLabel(),
+	)
+	return m.styles.HUD.Render(line)
+}
+
+func (m Model) difficultyLabel() string {
+	if m.difficulty.Preset == game.Custom {
+		return fmt.Sprintf("custom %dx%d", m.difficulty.Width, m.difficulty.Height)
+	}
+	return m.difficulty.Preset.String()
+}
+
+func (m Model) seedLabel() string {
+	if m.isDailyBoard() {
+		return "daily " + game.DailyDate(timeNow())
+	}
+	return "seed " + m.board.Seed().String()
+}
+
+// renderScrollIndicator shows which slice of a clipped board is on screen.
+func (m Model) renderScrollIndicator() string {
+	w, h := m.board.Width(), m.board.Height()
+	if !m.vp.scrolls(w, h) {
+		return ""
+	}
+	return m.styles.StatusBar.Render(fmt.Sprintf(
+		" view %d-%d/%d cols · %d-%d/%d rows ",
+		m.vp.offsetX+1, m.vp.offsetX+m.vp.cols, w,
+		m.vp.offsetY+1, m.vp.offsetY+m.vp.rows, h,
+	))
+}
+
+func (m Model) renderStatusBar() string {
+	return m.styles.StatusBar.Render(
+		" arrows/hjkl move · space reveal · f flag · c chord · n new · r restart · d difficulty · ? help · q quit ",
+	)
+}
+
+func (m Model) renderOverlay(title, body string) string {
+	return m.styles.Overlay.Render(m.styles.Title.Render(title) + "\n\n" + body)
+}
+
+func (m Model) renderDifficultyMenu() string {
+	lines := make([]string, 0, len(menuPresets)+2)
+	for i, p := range menuPresets {
+		d := game.PresetDifficulty(p)
+		prefix := "  "
+		if i == m.menuIndex {
+			prefix = "> "
+		}
+		lines = append(lines, fmt.Sprintf("%s%-13s %dx%d, %d mines",
+			prefix, p.String(), d.Width, d.Height, d.Mines))
+	}
+	lines = append(lines, "", "enter select · esc back")
+	return m.renderOverlay("Difficulty", strings.Join(lines, "\n"))
+}
+
+func (m Model) renderHelp() string {
+	body := strings.Join(m.keys.helpLines(), "\n") +
+		"\n\nMouse: left reveals, shift+left or right flags." +
+		"\nSome terminals paste on right-click; shift+left always works."
+	return m.renderOverlay("Help", body)
+}
+
+func (m Model) renderGameOver() string {
+	return m.renderOverlay("Game Over", fmt.Sprintf(
+		"You hit a mine after %d seconds.\n\n%s", m.elapsed, m.retryHint()))
+}
+
+func (m Model) renderWin() string {
+	body := fmt.Sprintf("Cleared in %d seconds.", m.elapsed)
+	if b := m.highscores.Best(m.difficulty.Key()); b >= 0 {
+		body += fmt.Sprintf("\nBest: %d seconds.", b)
+	}
+	return m.renderOverlay("Victory", body+"\n\n"+m.retryHint())
+}
+
+func (m Model) retryHint() string {
+	return fmt.Sprintf("n: new board · r: replay seed %s · q: quit", m.board.Seed())
 }

@@ -1,13 +1,18 @@
 package ui
 
-import "github.com/charmbracelet/bubbles/key"
+import (
+	"strings"
+	"unicode/utf8"
+
+	"github.com/charmbracelet/bubbles/key"
+)
 
 // KeyMap defines key bindings.
 type KeyMap struct {
-	Up, Down, Left, Right key.Binding
-	Reveal, Flag, Chord  key.Binding
-	New, Difficulty, Help key.Binding
-	Quit                  key.Binding
+	Up, Down, Left, Right          key.Binding
+	Reveal, Flag, Chord            key.Binding
+	New, Restart, Difficulty, Help key.Binding
+	Quit                           key.Binding
 }
 
 // DefaultKeyMap returns default bindings.
@@ -31,19 +36,23 @@ func DefaultKeyMap() KeyMap {
 		),
 		Reveal: key.NewBinding(
 			key.WithKeys(" ", "enter"),
-			key.WithHelp("space", "reveal"),
+			key.WithHelp("space/enter", "reveal cell"),
 		),
 		Flag: key.NewBinding(
 			key.WithKeys("f"),
-			key.WithHelp("f", "flag"),
+			key.WithHelp("f", "toggle flag (or shift+click)"),
 		),
 		Chord: key.NewBinding(
 			key.WithKeys("c", "shift+enter"),
-			key.WithHelp("c", "chord"),
+			key.WithHelp("c", "chord (auto-reveal)"),
 		),
 		New: key.NewBinding(
 			key.WithKeys("n"),
-			key.WithHelp("n", "new game"),
+			key.WithHelp("n", "new game (new seed)"),
+		),
+		Restart: key.NewBinding(
+			key.WithKeys("r"),
+			key.WithHelp("r", "restart same seed"),
 		),
 		Difficulty: key.NewBinding(
 			key.WithKeys("d"),
@@ -60,14 +69,29 @@ func DefaultKeyMap() KeyMap {
 	}
 }
 
-func (k KeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Reveal, k.Flag, k.Chord, k.Help, k.Quit}
+// bindings returns every binding in display order. The help overlay and the
+// status bar both derive from this, so key changes stay in one place.
+func (k KeyMap) bindings() []key.Binding {
+	return []key.Binding{
+		k.Up, k.Down, k.Left, k.Right,
+		k.Reveal, k.Flag, k.Chord,
+		k.New, k.Restart, k.Difficulty, k.Help, k.Quit,
+	}
 }
 
-func (k KeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{k.Up, k.Down, k.Left, k.Right},
-		{k.Reveal, k.Flag, k.Chord},
-		{k.New, k.Difficulty, k.Help, k.Quit},
+// helpLines renders one "keys  description" line per binding.
+func (k KeyMap) helpLines() []string {
+	bs := k.bindings()
+	width := 0
+	for _, b := range bs {
+		if n := utf8.RuneCountInString(b.Help().Key); n > width {
+			width = n
+		}
 	}
+	lines := make([]string, 0, len(bs))
+	for _, b := range bs {
+		pad := strings.Repeat(" ", width-utf8.RuneCountInString(b.Help().Key))
+		lines = append(lines, b.Help().Key+pad+"   "+b.Help().Desc)
+	}
+	return lines
 }
