@@ -28,25 +28,25 @@ type Board struct {
 	cells       []Cell
 	status      Status
 	difficulty  Difficulty
+	seed        Seed
 	minesPlaced bool
 	firstReveal bool
 	rng         *rand.Rand
 }
 
-// NewBoard creates an empty board; mines are placed on first Reveal.
-func NewBoard(d Difficulty, rng *rand.Rand) *Board {
-	if rng == nil {
-		rng = rand.New(rand.NewSource(0))
-	}
-	total := d.Width * d.Height
+// NewBoard creates an empty board; mines are placed on the first Reveal so
+// that the opening move is always safe. The same difficulty and seed always
+// produce the same layout.
+func NewBoard(d Difficulty, seed Seed) *Board {
 	return &Board{
 		width:      d.Width,
 		height:     d.Height,
 		mineCount:  d.Mines,
-		cells:      make([]Cell, total),
+		cells:      make([]Cell, d.Width*d.Height),
 		status:     StatusPlaying,
 		difficulty: d,
-		rng:        rng,
+		seed:       seed,
+		rng:        seed.rand(),
 	}
 }
 
@@ -276,21 +276,8 @@ func (b *Board) CellView(c Coord) CellView {
 // Difficulty returns the board difficulty.
 func (b *Board) Difficulty() Difficulty { return b.difficulty }
 
+// Seed returns the seed this board was generated from.
+func (b *Board) Seed() Seed { return b.seed }
+
 // ElapsedReady reports whether the timer should run (first reveal done).
 func (b *Board) ElapsedReady() bool { return b.firstReveal }
-
-// SetStatusForTest sets status (testing only).
-func (b *Board) SetStatusForTest(s Status) { b.status = s }
-
-// SetCellForTest configures a cell (testing only).
-func (b *Board) SetCellForTest(c Coord, mine bool, adjacent uint8, revealed, flagged bool) {
-	cell := b.cell(c)
-	cell.HasMine = mine
-	cell.Adjacent = adjacent
-	cell.Revealed = revealed
-	cell.Flagged = flagged
-	b.minesPlaced = true
-}
-
-// MarkMinesPlacedForTest marks mines as placed (testing only).
-func (b *Board) MarkMinesPlacedForTest() { b.minesPlaced = true }

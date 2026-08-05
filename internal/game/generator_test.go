@@ -34,7 +34,7 @@ func TestValidateDifficulty(t *testing.T) {
 
 func TestPlaceMinesCount(t *testing.T) {
 	d := PresetDifficulty(Beginner)
-	b := NewBoard(d, testRNG(42))
+	b := NewBoard(d, Seed(42))
 	if err := placeMines(b, testRNG(42), map[Coord]struct{}{}); err != nil {
 		t.Fatal(err)
 	}
@@ -51,14 +51,14 @@ func TestPlaceMinesCount(t *testing.T) {
 
 func TestRelocateSafeZone(t *testing.T) {
 	d := PresetDifficulty(Beginner)
-	for seed := int64(0); seed < 50; seed++ {
-		b := NewBoard(d, testRNG(seed))
-		if err := placeMines(b, testRNG(seed), map[Coord]struct{}{}); err != nil {
+	for seed := uint32(0); seed < 50; seed++ {
+		b := NewBoard(d, Seed(seed))
+		if err := placeMines(b, testRNG(int64(seed)), map[Coord]struct{}{}); err != nil {
 			t.Fatal(err)
 		}
 		first := Coord{X: 4, Y: 4}
 		safe := safeZone(first, b.width, b.height)
-		if err := relocateMinesFromSafeZone(b, safe, testRNG(seed+1)); err != nil {
+		if err := relocateMinesFromSafeZone(b, safe, testRNG(int64(seed)+1)); err != nil {
 			t.Fatalf("seed %d: %v", seed, err)
 		}
 		for c := range safe {

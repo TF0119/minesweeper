@@ -1,16 +1,15 @@
 package game
 
 import (
-	"math/rand"
 	"testing"
 )
 
 func TestFirstClickNeverMine(t *testing.T) {
 	d := PresetDifficulty(Beginner)
-	for seed := int64(0); seed < 100; seed++ {
+	for seed := uint32(0); seed < 100; seed++ {
 		for y := 0; y < d.Height; y++ {
 			for x := 0; x < d.Width; x++ {
-				b := NewBoard(d, rand.New(rand.NewSource(seed*1000+int64(y*d.Width+x))))
+				b := NewBoard(d, Seed(seed*1000+uint32(y*d.Width+x)))
 				first := Coord{X: x, Y: y}
 				res := b.Reveal(first)
 				if !res.Ok {
@@ -31,16 +30,16 @@ func TestFirstClickNeverMine(t *testing.T) {
 
 func TestFloodFill(t *testing.T) {
 	d := Difficulty{Preset: Custom, Width: 5, Height: 5, Mines: 1}
-	b := NewBoard(d, rand.New(rand.NewSource(1)))
-	b.MarkMinesPlacedForTest()
+	b := NewBoard(d, Seed(1))
+	b.markMinesPlaced()
 
 	// center empty region
 	for y := 0; y < 5; y++ {
 		for x := 0; x < 5; x++ {
-			b.SetCellForTest(Coord{x, y}, false, 0, false, false)
+			b.setCell(Coord{x, y}, false, 0, false, false)
 		}
 	}
-	b.SetCellForTest(Coord{4, 4}, true, 0, false, false)
+	b.setCell(Coord{4, 4}, true, 0, false, false)
 	computeAdjacent(b)
 
 	res := b.Reveal(Coord{0, 0})
@@ -54,9 +53,9 @@ func TestFloodFill(t *testing.T) {
 
 func TestRevealRevealedNoOp(t *testing.T) {
 	d := PresetDifficulty(Beginner)
-	b := NewBoard(d, rand.New(rand.NewSource(1)))
-	b.MarkMinesPlacedForTest()
-	b.SetCellForTest(Coord{0, 0}, false, 1, true, false)
+	b := NewBoard(d, Seed(1))
+	b.markMinesPlaced()
+	b.setCell(Coord{0, 0}, false, 1, true, false)
 	res := b.Reveal(Coord{0, 0})
 	if res.Ok {
 		t.Error("expected no-op on revealed cell")
@@ -65,8 +64,8 @@ func TestRevealRevealedNoOp(t *testing.T) {
 
 func TestFlagToggle(t *testing.T) {
 	d := PresetDifficulty(Beginner)
-	b := NewBoard(d, rand.New(rand.NewSource(1)))
-	b.MarkMinesPlacedForTest()
+	b := NewBoard(d, Seed(1))
+	b.markMinesPlaced()
 
 	res := b.ToggleFlag(Coord{1, 1})
 	if !res.Ok || b.CellView(Coord{1, 1}).State != CellFlagged {
@@ -80,9 +79,9 @@ func TestFlagToggle(t *testing.T) {
 
 func TestFlagOnRevealed(t *testing.T) {
 	d := PresetDifficulty(Beginner)
-	b := NewBoard(d, rand.New(rand.NewSource(1)))
-	b.MarkMinesPlacedForTest()
-	b.SetCellForTest(Coord{0, 0}, false, 1, true, false)
+	b := NewBoard(d, Seed(1))
+	b.markMinesPlaced()
+	b.setCell(Coord{0, 0}, false, 1, true, false)
 	if b.CanFlag(Coord{0, 0}) {
 		t.Error("CanFlag should be false on revealed cell")
 	}
@@ -90,20 +89,20 @@ func TestFlagOnRevealed(t *testing.T) {
 
 func TestChordSuccess(t *testing.T) {
 	d := Difficulty{Preset: Custom, Width: 3, Height: 3, Mines: 1}
-	b := NewBoard(d, rand.New(rand.NewSource(1)))
-	b.MarkMinesPlacedForTest()
+	b := NewBoard(d, Seed(1))
+	b.markMinesPlaced()
 
 	// 1 at center, mines at corners flagged
 	for y := 0; y < 3; y++ {
 		for x := 0; x < 3; x++ {
-			b.SetCellForTest(Coord{x, y}, false, 0, false, false)
+			b.setCell(Coord{x, y}, false, 0, false, false)
 		}
 	}
-	b.SetCellForTest(Coord{1, 1}, false, 2, true, false)
-	b.SetCellForTest(Coord{0, 0}, true, 0, false, true)
-	b.SetCellForTest(Coord{2, 0}, true, 0, false, true)
-	b.SetCellForTest(Coord{0, 2}, false, 0, false, false)
-	b.SetCellForTest(Coord{2, 2}, false, 0, false, false)
+	b.setCell(Coord{1, 1}, false, 2, true, false)
+	b.setCell(Coord{0, 0}, true, 0, false, true)
+	b.setCell(Coord{2, 0}, true, 0, false, true)
+	b.setCell(Coord{0, 2}, false, 0, false, false)
+	b.setCell(Coord{2, 2}, false, 0, false, false)
 
 	res := b.Chord(Coord{1, 1})
 	if !res.Ok {
@@ -116,16 +115,16 @@ func TestChordSuccess(t *testing.T) {
 
 func TestChordWrongFlag(t *testing.T) {
 	d := Difficulty{Preset: Custom, Width: 3, Height: 3, Mines: 1}
-	b := NewBoard(d, rand.New(rand.NewSource(1)))
-	b.MarkMinesPlacedForTest()
+	b := NewBoard(d, Seed(1))
+	b.markMinesPlaced()
 
 	for y := 0; y < 3; y++ {
 		for x := 0; x < 3; x++ {
-			b.SetCellForTest(Coord{x, y}, false, 0, false, false)
+			b.setCell(Coord{x, y}, false, 0, false, false)
 		}
 	}
-	b.SetCellForTest(Coord{1, 1}, false, 1, true, false)
-	b.SetCellForTest(Coord{0, 0}, true, 0, false, false)
+	b.setCell(Coord{1, 1}, false, 1, true, false)
+	b.setCell(Coord{0, 0}, true, 0, false, false)
 	// no flags placed — count mismatch
 
 	if b.CanChord(Coord{1, 1}) {
@@ -139,17 +138,17 @@ func TestChordWrongFlag(t *testing.T) {
 
 func TestChordHitsMine(t *testing.T) {
 	d := Difficulty{Preset: Custom, Width: 3, Height: 3, Mines: 1}
-	b := NewBoard(d, rand.New(rand.NewSource(1)))
-	b.MarkMinesPlacedForTest()
+	b := NewBoard(d, Seed(1))
+	b.markMinesPlaced()
 
 	for y := 0; y < 3; y++ {
 		for x := 0; x < 3; x++ {
-			b.SetCellForTest(Coord{x, y}, false, 0, false, false)
+			b.setCell(Coord{x, y}, false, 0, false, false)
 		}
 	}
-	b.SetCellForTest(Coord{1, 1}, false, 1, true, false)
-	b.SetCellForTest(Coord{0, 0}, true, 0, false, true)
-	b.SetCellForTest(Coord{2, 0}, true, 0, false, false) // unflagged mine
+	b.setCell(Coord{1, 1}, false, 1, true, false)
+	b.setCell(Coord{0, 0}, true, 0, false, true)
+	b.setCell(Coord{2, 0}, true, 0, false, false) // unflagged mine
 
 	res := b.Chord(Coord{1, 1})
 	if !res.Ok || b.Status() != StatusLost {
@@ -159,13 +158,13 @@ func TestChordHitsMine(t *testing.T) {
 
 func TestWinCondition(t *testing.T) {
 	d := Difficulty{Preset: Custom, Width: 2, Height: 2, Mines: 1}
-	b := NewBoard(d, rand.New(rand.NewSource(1)))
-	b.MarkMinesPlacedForTest()
+	b := NewBoard(d, Seed(1))
+	b.markMinesPlaced()
 
-	b.SetCellForTest(Coord{0, 0}, false, 1, false, false)
-	b.SetCellForTest(Coord{1, 0}, false, 1, false, false)
-	b.SetCellForTest(Coord{0, 1}, false, 1, false, false)
-	b.SetCellForTest(Coord{1, 1}, true, 0, false, false)
+	b.setCell(Coord{0, 0}, false, 1, false, false)
+	b.setCell(Coord{1, 0}, false, 1, false, false)
+	b.setCell(Coord{0, 1}, false, 1, false, false)
+	b.setCell(Coord{1, 1}, true, 0, false, false)
 
 	b.Reveal(Coord{0, 0})
 	b.Reveal(Coord{1, 0})
@@ -177,9 +176,9 @@ func TestWinCondition(t *testing.T) {
 
 func TestLossOnMine(t *testing.T) {
 	d := Difficulty{Preset: Custom, Width: 2, Height: 2, Mines: 1}
-	b := NewBoard(d, rand.New(rand.NewSource(1)))
-	b.MarkMinesPlacedForTest()
-	b.SetCellForTest(Coord{1, 1}, true, 0, false, false)
+	b := NewBoard(d, Seed(1))
+	b.markMinesPlaced()
+	b.setCell(Coord{1, 1}, true, 0, false, false)
 
 	res := b.Reveal(Coord{1, 1})
 	if !res.Ok || b.Status() != StatusLost {
@@ -189,9 +188,9 @@ func TestLossOnMine(t *testing.T) {
 
 func TestNoOpAfterGameOver(t *testing.T) {
 	d := PresetDifficulty(Beginner)
-	b := NewBoard(d, rand.New(rand.NewSource(1)))
-	b.MarkMinesPlacedForTest()
-	b.SetStatusForTest(StatusWon)
+	b := NewBoard(d, Seed(1))
+	b.markMinesPlaced()
+	b.setStatus(StatusWon)
 	res := b.Reveal(Coord{0, 0})
 	if res.Ok {
 		t.Error("expected no-op after win")
@@ -208,8 +207,8 @@ func TestCoordNeighbors(t *testing.T) {
 
 func TestRemainingMines(t *testing.T) {
 	d := PresetDifficulty(Beginner)
-	b := NewBoard(d, rand.New(rand.NewSource(1)))
-	b.MarkMinesPlacedForTest()
+	b := NewBoard(d, Seed(1))
+	b.markMinesPlaced()
 	b.ToggleFlag(Coord{0, 0})
 	b.ToggleFlag(Coord{1, 0})
 	if b.RemainingMines() != 8 {
