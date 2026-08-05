@@ -134,8 +134,9 @@ func (m Model) renderHUD() string {
 		best = fmt.Sprintf("%03d", b)
 	}
 	line := fmt.Sprintf(
-		" Mines:%03d  Time:%03d  Best:%s  [%s]  %s ",
-		m.board.RemainingMines(), m.elapsed, best, m.difficultyLabel(), m.seedLabel(),
+		" Mines:%03d  Time:%03d  Best:%s  [%s]  %s%s ",
+		m.board.RemainingMines(), m.elapsed, best,
+		m.difficultyLabel(), m.seedLabel(), m.noGuessLabel(),
 	)
 	return m.styles.HUD.Render(line)
 }
@@ -152,6 +153,19 @@ func (m Model) seedLabel() string {
 		return "daily " + game.DailyDate(timeNow())
 	}
 	return "seed " + m.board.Seed().String()
+}
+
+// noGuessLabel reports on the no-guess promise. The search can come up empty,
+// and saying so is better than letting the player trust a guarantee that does
+// not hold for this board.
+func (m Model) noGuessLabel() string {
+	if !m.config.NoGuess {
+		return ""
+	}
+	if m.board.ElapsedReady() && !m.board.NoGuess() {
+		return "  guess needed"
+	}
+	return "  no-guess"
 }
 
 // renderScrollIndicator shows which slice of a clipped board is on screen.

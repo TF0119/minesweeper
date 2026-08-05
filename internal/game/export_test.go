@@ -20,3 +20,13 @@ func (b *Board) setCell(c Coord, mine bool, adjacent uint8, revealed, flagged bo
 func (b *Board) markMinesPlaced() { b.minesPlaced = true }
 
 func (b *Board) hasMine(c Coord) bool { return b.cell(c).HasMine }
+
+// resetReveals returns the board to its just-generated state with the mine
+// layout intact, so a solver run can be replayed against it.
+func (b *Board) resetReveals() {
+	for i := range b.cells {
+		b.cells[i].Revealed = false
+		b.cells[i].Mark = MarkNone
+	}
+	b.status = StatusPlaying
+}

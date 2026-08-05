@@ -48,12 +48,14 @@ func run(args []string) error {
 		mines       = fs.Int("mines", 0, "custom mine count")
 		seedFlag    = fs.String("seed", "", `board seed: a number, or "daily" for today's challenge`)
 		daily       = fs.Bool("daily", false, `shorthand for -seed daily`)
+		noGuess     = fs.Bool("no-guess", false, "only generate boards solvable without guessing")
 		noColor     = fs.Bool("no-color", false, "disable colors")
 		showVersion = fs.Bool("version", false, "print version and exit")
 	)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+	given := flagsGiven(fs)
 
 	if *showVersion {
 		fmt.Println("minesweeper", buildVersion())
@@ -76,7 +78,11 @@ func run(args []string) error {
 		return err
 	}
 
-	config = rememberDifficulty(config, d)
+	if given["no-guess"] {
+		config.NoGuess = *noGuess
+	}
+
+	config = rememberPreferences(config, d)
 
 	return ui.Run(ui.Options{
 		Difficulty: d,
@@ -151,8 +157,17 @@ func resolveSeed(seedFlag string, daily bool) (game.Seed, error) {
 	return game.ParseSeed(seedFlag, time.Now())
 }
 
-// rememberDifficulty persists the chosen difficulty for the next launch.
-func rememberDifficulty(c storage.Config, d game.Difficulty) storage.Config {
+// flagsGiven reports which flags the user actually typed. A bool flag left out
+// and a bool flag set to false are indistinguishable by value, and the two mean
+// different things when a saved preference is involved.
+func flagsGiven(fs *flag.FlagSet) map[string]bool {
+	given := make(map[string]bool)
+	fs.Visit(func(f *flag.Flag) { given[f.Name] = true })
+	return given
+}
+
+// rememberPreferences persists the settings that should still apply next launch.
+func rememberPreferences(c storage.Config, d game.Difficulty) storage.Config {
 	c.LastPreset = d.Preset.String()
 	if d.Preset == game.Custom {
 		c.Custom = storage.Custom{Width: d.Width, Height: d.Height, Mines: d.Mines}

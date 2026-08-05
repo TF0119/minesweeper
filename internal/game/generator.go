@@ -90,6 +90,36 @@ func relocateMinesFromSafeZone(b *Board, safe map[Coord]struct{}, rng *rand.Rand
 	return nil
 }
 
+// maxNoGuessAttempts bounds the search for a layout that needs no guessing.
+// Most boards are found in a handful of tries; the cap exists so that a hard
+// combination of size and mine density cannot stall the opening move. Running
+// out means the player gets an ordinary board, which is worse than promised
+// but far better than a game that refuses to start.
+const maxNoGuessAttempts = 400
+
+// placeSolvableMines lays out mines that can be cleared from first by pure
+// deduction, and reports whether it managed to. Each attempt reshuffles from
+// the board's own generator, so a seed still reproduces its board exactly.
+func placeSolvableMines(b *Board, safe map[Coord]struct{}, first Coord, rng *rand.Rand) (bool, error) {
+	for attempt := 0; attempt < maxNoGuessAttempts; attempt++ {
+		clearMines(b)
+		if err := placeMines(b, rng, safe); err != nil {
+			return false, err
+		}
+		if solvable(b, first) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func clearMines(b *Board) {
+	for i := range b.cells {
+		b.cells[i].HasMine = false
+		b.cells[i].Adjacent = 0
+	}
+}
+
 func safeZone(first Coord, w, h int) map[Coord]struct{} {
 	safe := make(map[Coord]struct{})
 	safe[first] = struct{}{}

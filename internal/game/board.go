@@ -32,6 +32,9 @@ type Board struct {
 	minesPlaced bool
 	firstReveal bool
 	rng         *rand.Rand
+
+	noGuess         bool // ask the generator for a board that needs no guessing
+	noGuessVerified bool // and whether it actually found one
 }
 
 // NewBoard creates an empty board; mines are placed on the first Reveal so
@@ -49,6 +52,22 @@ func NewBoard(d Difficulty, seed Seed) *Board {
 		rng:        seed.rand(),
 	}
 }
+
+// NewNoGuessBoard is NewBoard for a board that can be cleared by deduction
+// alone, so the player is never asked to flip a coin. Laying one out means
+// searching, which costs time on the opening move and is not always possible;
+// when the search comes up empty the board falls back to an ordinary layout
+// and NoGuess reports false.
+func NewNoGuessBoard(d Difficulty, seed Seed) *Board {
+	b := NewBoard(d, seed)
+	b.noGuess = true
+	return b
+}
+
+// NoGuess reports whether this board is known to be solvable without guessing.
+// It is only meaningful once mines are placed, which happens on the first
+// reveal.
+func (b *Board) NoGuess() bool { return b.noGuessVerified }
 
 func (b *Board) cell(c Coord) *Cell {
 	return &b.cells[c.index(b.width)]
@@ -105,11 +124,7 @@ func (b *Board) Reveal(c Coord) ActionResult {
 	}
 
 	if !b.minesPlaced {
-		safe := safeZone(c, b.width, b.height)
-		if err := placeMines(b, b.rng, map[Coord]struct{}{}); err != nil {
-			return b.noop()
-		}
-		if err := relocateMinesFromSafeZone(b, safe, b.rng); err != nil {
+		if err := b.placeMinesAround(c); err != nil {
 			return b.noop()
 		}
 		b.minesPlaced = true
@@ -123,6 +138,26 @@ func (b *Board) Reveal(c Coord) ActionResult {
 	}
 	b.checkWin()
 	return b.result(changed)
+}
+
+// placeMinesAround lays out mines with the 3x3 around the opening move kept
+// clear, which is what makes the first click safe and always a cascade.
+func (b *Board) placeMinesAround(first Coord) error {
+	safe := safeZone(first, b.width, b.height)
+	if b.noGuess {
+		verified, err := placeSolvableMines(b, safe, first, b.rng)
+		b.noGuessVerified = verified
+		return err
+	}
+
+	// The classic path places mines everywhere and then moves the ones that
+	// landed in the safe zone. It draws from the generator in a specific order,
+	// so it is kept as-is: changing it would hand every existing seed a
+	// different board.
+	if err := placeMines(b, b.rng, map[Coord]struct{}{}); err != nil {
+		return err
+	}
+	return relocateMinesFromSafeZone(b, safe, b.rng)
 }
 
 func (b *Board) revealAt(c Coord) []Coord {

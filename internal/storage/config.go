@@ -24,6 +24,7 @@ type Config struct {
 	Custom        Custom `json:"custom"`
 	UseEmoji      bool   `json:"use_emoji"`
 	QuestionMarks bool   `json:"question_marks"`
+	NoGuess       bool   `json:"no_guess"`
 }
 
 // DefaultConfig returns factory defaults.
@@ -34,6 +35,7 @@ func DefaultConfig() Config {
 		Custom:        Custom{Width: 20, Height: 10, Mines: 30},
 		UseEmoji:      false,
 		QuestionMarks: true,
+		NoGuess:       false,
 	}
 }
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"testing"
 	"time"
 
@@ -107,5 +108,32 @@ func TestBuildVersion(t *testing.T) {
 	version = ""
 	if got := buildVersion(); got == "" {
 		t.Error("buildVersion() returned an empty string")
+	}
+}
+
+func TestFlagsGivenDistinguishesAbsentFromFalse(t *testing.T) {
+	newSet := func() (*flag.FlagSet, *bool) {
+		fs := flag.NewFlagSet("t", flag.ContinueOnError)
+		b := fs.Bool("no-guess", false, "")
+		return fs, b
+	}
+
+	fs, _ := newSet()
+	if err := fs.Parse(nil); err != nil {
+		t.Fatal(err)
+	}
+	if flagsGiven(fs)["no-guess"] {
+		t.Error("an omitted flag should not count as given")
+	}
+
+	fs, value := newSet()
+	if err := fs.Parse([]string{"-no-guess=false"}); err != nil {
+		t.Fatal(err)
+	}
+	if !flagsGiven(fs)["no-guess"] {
+		t.Error("-no-guess=false should count as given, so it can switch a saved preference off")
+	}
+	if *value {
+		t.Error("-no-guess=false should parse as false")
 	}
 }

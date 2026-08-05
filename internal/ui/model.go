@@ -46,7 +46,7 @@ var timeNow = time.Now
 func NewModel(opts Options) Model {
 	d := opts.Difficulty
 	return Model{
-		board:      game.NewBoard(d, opts.Seed),
+		board:      newBoard(d, opts.Seed, opts.Config.NoGuess),
 		cursor:     game.Coord{X: d.Width / 2, Y: d.Height / 2},
 		screen:     ScreenPlaying,
 		difficulty: d,
@@ -58,6 +58,15 @@ func NewModel(opts Options) Model {
 		glyphs:     newGlyphs(opts.Config.UseEmoji),
 		keys:       DefaultKeyMap(),
 	}
+}
+
+// newBoard builds the kind of board the player asked for. No-guess boards cost
+// a search on the opening move, so they are only built when requested.
+func newBoard(d game.Difficulty, seed game.Seed, noGuess bool) *game.Board {
+	if noGuess {
+		return game.NewNoGuessBoard(d, seed)
+	}
+	return game.NewBoard(d, seed)
 }
 
 // isDailyBoard reports whether the current board is today's daily challenge.

@@ -166,7 +166,7 @@ func (m Model) withCursor(dx, dy int) Model {
 }
 
 func (m Model) startNewGame(d game.Difficulty, seed game.Seed) (Model, tea.Cmd) {
-	m.board = game.NewBoard(d, seed)
+	m.board = newBoard(d, seed, m.config.NoGuess)
 	m.difficulty = d
 	m.cursor = game.Coord{X: d.Width / 2, Y: d.Height / 2}
 	m.elapsed = 0
