@@ -32,6 +32,8 @@ All notable changes to this project will be documented in this file.
 - Right-click flagged a cell on both press and release, so the mark cycled twice
   and `F` flashed for a moment. Right-click now acts on release only; legacy
   X10 terminals that emit a single press event still work
+- Homebrew install failed on Linux because the cask postflight called macOS-only
+  `xattr`. The hook now runs only on macOS
 - `minesweeper -version` reported `dev` for binaries installed with `go install`.
   It now falls back to the module version the toolchain records
 - A config file written before a setting existed no longer silently reads that

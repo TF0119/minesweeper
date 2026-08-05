@@ -57,9 +57,10 @@ homebrew_casks:
       email: noreply@github.com
     hooks:
       post:
-        # macOS quarantines anything downloaded, and an unsigned binary is
-        # refused outright. Clearing the attribute keeps the cask usable.
+        # macOS quarantines downloaded binaries; Linux has no xattr, so guard
+        # with OS.mac? or brew install fails on Linux with exit 127.
         install: |
+          next unless OS.mac?
           if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
             system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/minesweeper"]
           end
