@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -187,12 +188,50 @@ func TestResumeIgnoresAFinishedSession(t *testing.T) {
 		Seconds:    5,
 		SavedAt:    time.Now(),
 	}
+	if err := storage.SaveSession(finished); err != nil {
+		t.Fatal(err)
+	}
 	m := resume(t, finished)
 	if m.board.Seed() == seed {
 		t.Error("a finished session should be dropped, not restored")
 	}
 	if m.timerActive {
 		t.Error("dropping a session should not start the clock")
+	}
+	if _, ok, _ := storage.LoadSession(); ok {
+		t.Error("a finished session file should be cleared after it is ignored")
+	}
+}
+
+func TestNewGameClearsASavedSession(t *testing.T) {
+	s := newSession(t)
+	s.revealAt(game.Coord{X: 4, Y: 4})
+	s.key("q")
+	if _, ok, _ := storage.LoadSession(); !ok {
+		t.Fatal("expected a saved session")
+	}
+
+	s.m.quitting = false
+	s.key("n")
+	if _, ok, _ := storage.LoadSession(); ok {
+		t.Error("starting a new board left the previous session on disk")
+	}
+}
+
+func TestResumeShowsNoticeUntilAKeyIsPressed(t *testing.T) {
+	_, saved := playedSession(t)
+	m := resume(t, saved)
+	if m.notice != "resumed" {
+		t.Errorf("notice = %q, want resumed", m.notice)
+	}
+	if !strings.Contains(m.View(), "resumed") {
+		t.Error("View should show the resumed notice")
+	}
+
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyRight})
+	m = next.(Model)
+	if m.notice != "" {
+		t.Errorf("notice = %q after a key, want empty", m.notice)
 	}
 }
 

@@ -56,6 +56,7 @@ func (m Model) quit() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	m.notice = ""
 	// Ctrl+C means stop, whatever is on screen. Leaving it to the per-screen
 	// handlers made it close a sub-screen on some of them.
 	if msg.Type == tea.KeyCtrlC {
@@ -320,7 +321,7 @@ func (m Model) startNewGame(d game.Difficulty, seed game.Seed) (Model, tea.Cmd) 
 	m.timerStart = time.Time{}
 	m.screen = ScreenPlaying
 	m = m.clearScreenStack()
-	m.errMsg = ""
+	m.notice = ""
 	m.moveLog = nil
 	m.watchBoard = nil
 	m.watchReplay = nil
@@ -331,6 +332,9 @@ func (m Model) startNewGame(d game.Difficulty, seed game.Seed) (Model, tea.Cmd) 
 	m.vp = m.vp.follow(m.cursor, d.Width, d.Height)
 	m.playVp = m.vp
 	m.playCursor = m.cursor
+	// Drop any parked game now, not only on quit: killing the process after n
+	// would otherwise resurrect the board the player just abandoned.
+	_ = storage.ClearSession()
 	return m, nil
 }
 

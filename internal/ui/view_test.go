@@ -179,8 +179,9 @@ func TestStatsScreenShowsEveryDifficulty(t *testing.T) {
 
 func TestStatusBarShrinksToFitTheTerminal(t *testing.T) {
 	m := testModel()
+	hints := m.statusHintsFor()
 
-	widest := lipgloss.Width(statusHints[0])
+	widest := lipgloss.Width(hints[0])
 	tests := []struct {
 		name  string
 		width int
@@ -193,8 +194,8 @@ func TestStatusBarShrinksToFitTheTerminal(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m.width = tt.width
-			want := statusHints[len(statusHints)-1]
-			for _, candidate := range statusHints {
+			want := hints[len(hints)-1]
+			for _, candidate := range hints {
 				if tt.width == 0 || lipgloss.Width(candidate) <= tt.width {
 					want = candidate
 					break
@@ -211,7 +212,111 @@ func TestStatusBarShrinksToFitTheTerminal(t *testing.T) {
 // achieves nothing.
 func TestNarrowestStatusHintFitsASmallTerminal(t *testing.T) {
 	const narrowest = 40
-	if got := lipgloss.Width(statusHints[len(statusHints)-1]); got > narrowest {
-		t.Errorf("the shortest hint is %d columns, too wide for a %d-column terminal", got, narrowest)
+	m := testModel()
+	for _, screen := range []Screen{
+		ScreenPlaying, ScreenMenu, ScreenDifficultyMenu, ScreenSettings,
+		ScreenStats, ScreenHelp, ScreenReplays, ScreenReplayWatch,
+		ScreenGameOver, ScreenWin,
+	} {
+		m.screen = screen
+		hints := m.statusHintsFor()
+		if got := lipgloss.Width(hints[len(hints)-1]); got > narrowest {
+			t.Errorf("screen %v: shortest hint is %d columns, too wide for a %d-column terminal",
+				screen, got, narrowest)
+		}
+	}
+}
+
+func TestStatusBarFollowsTheScreen(t *testing.T) {
+	m := testModel()
+	m.width = 120
+	m.screen = ScreenMenu
+	if got := m.renderStatusBar(); !strings.Contains(got, "enter select") {
+		t.Errorf("menu status = %q, want enter select", got)
+	}
+	m.screen = ScreenReplayWatch
+	if got := m.renderStatusBar(); !strings.Contains(got, "space pause") {
+		t.Errorf("timelapse status = %q, want space pause", got)
+	}
+	m.screen = ScreenGameOver
+	if got := m.renderStatusBar(); !strings.Contains(got, "r restart") {
+		t.Errorf("game over status = %q, want r restart", got)
+	}
+}
+
+func TestRetryHintUsesRestartWording(t *testing.T) {
+	m := testModel()
+	got := m.retryHint()
+	if strings.Contains(got, "replay") {
+		t.Errorf("retryHint = %q, must not say replay for the same-seed restart", got)
+	}
+	if !strings.Contains(got, "restart seed") || !strings.Contains(got, "m: menu") {
+		t.Errorf("retryHint = %q, want restart seed and m: menu", got)
+	}
+}
+
+func TestNoGuessLabelFollowsTheBoardNotTheConfig(t *testing.T) {
+	m := testModel()
+	m.boardNoGuess = true
+	m.config.NoGuess = false
+	if got := m.noGuessLabel(); got != "  no-guess" {
+		t.Errorf("label = %q, want no-guess for a board generated that way", got)
+	}
+
+	m.boardNoGuess = false
+	m.config.NoGuess = true
+	if got := m.noGuessLabel(); got != "" {
+		t.Errorf("label = %q, want empty when only the next-board setting is on", got)
+	}
+}
+
+func TestNoGuessLabelDuringWatchUsesTheReplay(t *testing.T) {
+	r := game.Replay{
+		Seed:       game.Seed(1),
+		Difficulty: game.PresetDifficulty(game.Beginner),
+		NoGuess:    true,
+		Moves:      []game.Move{{Kind: game.MoveReveal, Coord: game.Coord{X: 4, Y: 4}}},
+	}
+	m, _ := testModel().startReplayWatch(r)
+	m.boardNoGuess = false
+	m.config.NoGuess = false
+	if got := m.noGuessLabel(); got != "  no-guess" {
+		t.Errorf("watch label = %q, want no-guess from the replay", got)
+	}
+}
+
+func TestHubResumeLabelDependsOnReturnTarget(t *testing.T) {
+	m := testModel()
+	m = m.pushScreen(ScreenMenu)
+	if got := m.hubItemLabel(0); got != "Resume" {
+		t.Errorf("from play: %q, want Resume", got)
+	}
+
+	m = testModel()
+	m.screen = ScreenGameOver
+	m = m.pushScreen(ScreenMenu)
+	if got := m.hubItemLabel(0); got != "Back" {
+		t.Errorf("from game over: %q, want Back", got)
+	}
+}
+
+func TestWatchListShowsDifficultyAndDate(t *testing.T) {
+	m := testModel()
+	m.replays = []game.Replay{{
+		Seed:       game.Seed(7),
+		Difficulty: game.PresetDifficulty(game.Beginner),
+		Won:        true,
+		Seconds:    42,
+		Moves:      []game.Move{{Kind: game.MoveReveal}},
+		PlayedAt:   time.Date(2026, 8, 6, 12, 0, 0, 0, time.UTC),
+	}}
+	got := m.renderReplays()
+	for _, want := range []string{"beginner", "won", "42s", "2026-08-06"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("watch list = %q, missing %q", got, want)
+		}
+	}
+	if strings.Contains(got, "seed 7") || strings.Contains(got, " 7 ") {
+		t.Errorf("watch list should not lead with the seed: %q", got)
 	}
 }

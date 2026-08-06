@@ -89,6 +89,10 @@ func TestLoadSessionRejectsNothingToResume(t *testing.T) {
 			if _, ok, err := LoadSession(); ok || err != nil {
 				t.Errorf("ok = %v, err = %v; want the session ignored", ok, err)
 			}
+			path, _ := SessionPath()
+			if _, err := os.Stat(path); !os.IsNotExist(err) {
+				t.Errorf("rejected session file still present: %v", err)
+			}
 		})
 	}
 }

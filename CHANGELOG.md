@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Starting a new board (`n`, New game, Daily, or a difficulty change) now clears
+  any parked session immediately, so killing the process after abandoning a game
+  cannot resurrect the previous one
+- Ignoring a finished or unusable `session.json` now deletes the file instead of
+  re-reading it on every launch
+- Timelapse playback of a no-guess game rebuilds the board with the no-guess
+  generator; older recordings without the flag still play as classic
+- The HUD `no-guess` / `guess needed` label follows the board on screen (including
+  a watched replay), not the setting for the next board
+
+### Changed
+
+- Status bar hints match the current screen instead of always listing play keys
+- Game over and victory say `restart seed` and mention `m: menu`; the hub shows
+  `Back` when the menu was opened over an overlay rather than the board
+- Resuming a saved game shows a brief `resumed` notice until the next key
+- Watch lists difficulty, result, time, move count, and date instead of the seed
+
 ## [0.5.0] - 2026-08-06
 
 ### Added

@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/TF0119/minesweeper/internal/game"
+	"github.com/TF0119/minesweeper/internal/storage"
+	"github.com/TF0119/minesweeper/internal/storage/storagetest"
 )
 
 func TestReplayTimelapseAdvancesOnTick(t *testing.T) {
@@ -126,5 +128,72 @@ func TestReplayWatchHUDUsesReplayBoard(t *testing.T) {
 	watchMines := m.watchBoard.RemainingMines()
 	if liveMines != watchMines && strings.Contains(hud, fmt.Sprintf("%03d", liveMines)) {
 		t.Errorf("HUD mine count should follow watch board (%d), not live board (%d)", watchMines, liveMines)
+	}
+}
+
+func TestReplayWatchUsesNoGuessGenerator(t *testing.T) {
+	d := game.PresetDifficulty(game.Beginner)
+	first := game.Coord{X: 4, Y: 4}
+	seed := game.Seed(7)
+
+	want := game.NewNoGuessBoard(d, seed)
+	want.Reveal(first)
+	classic := game.NewBoard(d, seed)
+	classic.Reveal(first)
+
+	same := true
+	for y := 0; y < d.Height && same; y++ {
+		for x := 0; x < d.Width && same; x++ {
+			c := game.Coord{X: x, Y: y}
+			if want.CellView(c) != classic.CellView(c) {
+				same = false
+			}
+		}
+	}
+	if same {
+		t.Skip("seed 7 yields the same opening for classic and no-guess; pick another later")
+	}
+
+	r := game.Replay{
+		Seed:       seed,
+		Difficulty: d,
+		NoGuess:    true,
+		Moves:      []game.Move{{Kind: game.MoveReveal, Coord: first}},
+	}
+	m, _ := testModel().startReplayWatch(r)
+	m, _ = m.handleReplayTick()
+
+	for y := 0; y < d.Height; y++ {
+		for x := 0; x < d.Width; x++ {
+			c := game.Coord{X: x, Y: y}
+			if got, wantView := m.watchBoard.CellView(c), want.CellView(c); got != wantView {
+				t.Fatalf("no-guess watch cell %+v = %+v, want %+v", c, got, wantView)
+			}
+		}
+	}
+}
+
+func TestSaveReplayRecordsNoGuess(t *testing.T) {
+	storagetest.IsolateConfigDir(t)
+	cfg := storage.DefaultConfig()
+	cfg.NoGuess = true
+	m := NewModel(Options{
+		Difficulty: game.PresetDifficulty(game.Beginner),
+		Seed:       game.Seed(3),
+		Config:     cfg,
+		HighScores: storage.DefaultHighScores(),
+		Stats:      storage.DefaultStats(),
+	})
+	m.boardNoGuess = true
+	m.moveLog = []game.Move{{Kind: game.MoveReveal, Coord: game.Coord{X: 4, Y: 4}}}
+	m.elapsed = 9
+	m.saveReplay(true)
+
+	list, err := storage.ListReplays(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 1 || !list[0].NoGuess {
+		t.Errorf("saved replay = %+v, want NoGuess true", list)
 	}
 }

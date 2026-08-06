@@ -37,6 +37,19 @@ var hubMenuItems = []hubItem{
 
 func (m Model) renderHubMenu() string {
 	return m.renderMenuList("Menu", len(hubMenuItems), func(i int) string {
-		return hubMenuItems[i].label
+		return m.hubItemLabel(i)
 	})
+}
+
+// hubItemLabel picks Resume when esc returns to the board, and Back when the
+// menu was opened over game-over or another overlay.
+func (m Model) hubItemLabel(i int) string {
+	item := hubMenuItems[i]
+	if item.action != hubResume {
+		return item.label
+	}
+	if len(m.screenStack) > 0 && m.screenStack[len(m.screenStack)-1] == ScreenPlaying {
+		return "Resume"
+	}
+	return "Back"
 }
