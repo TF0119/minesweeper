@@ -133,9 +133,8 @@ the player and Minesweeper for no gain. The menu is opt-in via `m` or `Esc` and
 collects settings, statistics, and navigation that used to be scattered across
 single-key shortcuts.
 
-`returnScreen` remembers where the player came from so `Esc` from statistics
-opened via the menu returns to the menu, while `Esc` from a shortcut opened
-during play returns to the board.
+`screenStack` remembers nested screens so `Esc` unwinds Menu → Watch →
+timelapse without trapping the player on the hub.
 
 ## Timelapse
 

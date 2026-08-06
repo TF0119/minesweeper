@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.1] - 2026-08-06
+
+### Fixed
+
+- Menu navigation after Watch: nested screens now unwind correctly instead of
+  trapping you on the hub after a timelapse
+- Game over and victory overlays now accept `m` / `Esc` to open the menu
+- `q` exits timelapse playback back to the replay list, same as `Esc`
+
 ## [0.4.0] - 2026-08-06
 
 ### Added
