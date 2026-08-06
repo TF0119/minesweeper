@@ -8,7 +8,10 @@ import (
 	"github.com/TF0119/minesweeper/internal/game"
 )
 
-const configVersion = 1
+// configVersion 2 made no-guess boards the default. Files written by version 1
+// carry an explicit no_guess:false that was the old default rather than a
+// choice, so loading one moves it onto the new default. See migrate.
+const configVersion = 2
 
 // Custom holds custom difficulty dimensions.
 type Custom struct {
@@ -36,7 +39,7 @@ func DefaultConfig() Config {
 		Custom:        Custom{Width: 20, Height: 10, Mines: 30},
 		UseEmoji:      false,
 		QuestionMarks: true,
-		NoGuess:       false,
+		NoGuess:       true,
 		Theme:         "classic",
 	}
 }
@@ -60,10 +63,22 @@ func LoadConfig() (Config, error) {
 	if err := json.Unmarshal(data, &c); err != nil {
 		return DefaultConfig(), err
 	}
-	if c.Version == 0 {
-		c.Version = configVersion
+	return migrate(c), nil
+}
+
+// migrate brings an older config file forward. Decoding happens onto the
+// defaults, so a file that predates the version field arrives already carrying
+// the current one and needs nothing.
+func migrate(c Config) Config {
+	if c.Version < 2 {
+		// Version 1 defaulted no-guess off, so a no_guess:false written by it
+		// records the old default rather than a decision. Version 2 promises
+		// boards that deduction alone can clear, and anyone who wants the coin
+		// flips back can say so in Settings.
+		c.NoGuess = true
 	}
-	return c, nil
+	c.Version = configVersion
+	return c
 }
 
 // SaveConfig writes config atomically.

@@ -74,3 +74,62 @@ func TestHighScoreUpdate(t *testing.T) {
 		t.Errorf("best = %d, want 50", h.Best("beginner"))
 	}
 }
+
+// The game promises boards that deduction alone can clear, so that has to be
+// what a fresh install does.
+func TestConfigDefaultsToNoGuess(t *testing.T) {
+	if !DefaultConfig().NoGuess {
+		t.Error("DefaultConfig().NoGuess = false, want no-guess boards by default")
+	}
+}
+
+// writeConfigFile drops raw JSON where LoadConfig will find it.
+func writeConfigFile(t *testing.T, body string) {
+	t.Helper()
+	path, err := ConfigPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestLoadConfigMovesVersionOneOntoNoGuess(t *testing.T) {
+	storagetest.IsolateConfigDir(t)
+	// Version 1 defaulted no-guess off, so its no_guess:false is the old
+	// default rather than something the player asked for.
+	writeConfigFile(t, `{"version":1,"no_guess":false,"theme":"dark","last_preset":"expert"}`)
+
+	c, err := LoadConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.NoGuess {
+		t.Error("a version 1 config should come forward onto no-guess boards")
+	}
+	if c.Version != configVersion {
+		t.Errorf("Version = %d, want %d after migration", c.Version, configVersion)
+	}
+	if c.Theme != "dark" || c.LastPreset != "expert" {
+		t.Errorf("migration disturbed unrelated settings: %+v", c)
+	}
+}
+
+// Once the file is at the current version, no_guess:false is a decision and
+// migration must leave it alone.
+func TestLoadConfigKeepsNoGuessOffOnceChosen(t *testing.T) {
+	storagetest.IsolateConfigDir(t)
+	writeConfigFile(t, `{"version":2,"no_guess":false}`)
+
+	c, err := LoadConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.NoGuess {
+		t.Error("an explicit no_guess:false at the current version was overwritten")
+	}
+}
