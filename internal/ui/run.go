@@ -18,6 +18,9 @@ type Options struct {
 	HighScores storage.HighScores
 	Stats      storage.Stats
 	NoColor    bool
+	// Session, when set, is an unfinished game to pick up instead of dealing
+	// a new board.
+	Session *storage.Session
 }
 
 // Run starts the TUI program.

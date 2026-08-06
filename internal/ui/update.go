@@ -9,8 +9,12 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// Init implements tea.Model.
+// Init implements tea.Model. A resumed game arrives with its clock already
+// running, so the tick has to start without waiting for a first move.
 func (m Model) Init() tea.Cmd {
+	if m.timerActive {
+		return tickCmd()
+	}
 	return nil
 }
 
@@ -37,13 +41,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case replayTickMsg:
 		return m.handleReplayTick()
 	case tea.QuitMsg:
-		m.quitting = true
-		return m, tea.Quit
+		return m.quit()
 	}
 	return m, nil
 }
 
+// quit persists everything worth keeping and stops the program. Every exit
+// goes through here so no path forgets one of them.
+func (m Model) quit() (tea.Model, tea.Cmd) {
+	_ = storage.SaveConfig(m.config)
+	m.persistSession()
+	m.quitting = true
+	return m, tea.Quit
+}
+
 func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Ctrl+C means stop, whatever is on screen. Leaving it to the per-screen
+	// handlers made it close a sub-screen on some of them.
+	if msg.Type == tea.KeyCtrlC {
+		return m.quit()
+	}
 	switch m.screen {
 	case ScreenMenu:
 		return m.handleHubMenuKey(msg)
@@ -109,8 +126,7 @@ func (m Model) handleOverlayKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.startNewGame(m.difficulty, m.board.Seed())
 	case key.Matches(msg, m.keys.Quit):
 		if m.screen == ScreenGameOver || m.screen == ScreenWin {
-			m.quitting = true
-			return m, tea.Quit
+			return m.quit()
 		}
 		return m.popScreen(), nil
 	case m.screen == ScreenGameOver || m.screen == ScreenWin:
@@ -130,9 +146,7 @@ func (m Model) handleOverlayKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m Model) handlePlayingKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Quit):
-		_ = storage.SaveConfig(m.config)
-		m.quitting = true
-		return m, tea.Quit
+		return m.quit()
 	case key.Matches(msg, m.keys.Menu), msg.String() == "esc":
 		return m.openMenu(), nil
 	case key.Matches(msg, m.keys.Help):
@@ -170,8 +184,7 @@ func (m Model) withPresetIndex() Model {
 
 func (m Model) handleHubMenuKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if key.Matches(msg, m.keys.Quit) {
-		m.quitting = true
-		return m, tea.Quit
+		return m.quit()
 	}
 	switch msg.String() {
 	case "up", "k":
@@ -205,9 +218,8 @@ func (m Model) activateHubItem(action hubAction) (Model, tea.Cmd) {
 	case hubReplays:
 		return m.pushScreen(ScreenReplays), nil
 	case hubQuit:
-		_ = storage.SaveConfig(m.config)
-		m.quitting = true
-		return m, tea.Quit
+		next, cmd := m.quit()
+		return next.(Model), cmd
 	}
 	return m, nil
 }
@@ -314,11 +326,39 @@ func (m Model) startNewGame(d game.Difficulty, seed game.Seed) (Model, tea.Cmd) 
 	m.watchReplay = nil
 	m.watchPlaying = false
 	m.watchPaused = false
+	m.boardNoGuess = m.config.NoGuess
 	m.vp = fit(viewport{}, m.width, m.height, d.Width, d.Height)
 	m.vp = m.vp.follow(m.cursor, d.Width, d.Height)
 	m.playVp = m.vp
 	m.playCursor = m.cursor
 	return m, nil
+}
+
+// persistSession parks an unfinished game for the next launch. When there is
+// nothing to come back to it clears the file instead: leaving the previous
+// game there would resurrect it after starting a fresh board.
+func (m Model) persistSession() {
+	if m.board.Status() != game.StatusPlaying || len(m.moveLog) == 0 {
+		_ = storage.ClearSession()
+		return
+	}
+	seconds := m.elapsed
+	if m.timerActive {
+		seconds = m.computeElapsed()
+	}
+	// A timelapse borrows the cursor, so the parked one is the player's.
+	cursor := m.cursor
+	if m.screen == ScreenReplayWatch {
+		cursor = m.playCursor
+	}
+	_ = storage.SaveSession(storage.Session{
+		Seed:       m.board.Seed(),
+		Difficulty: m.difficulty,
+		NoGuess:    m.boardNoGuess,
+		Moves:      append([]game.Move(nil), m.moveLog...),
+		Seconds:    seconds,
+		Cursor:     cursor,
+	})
 }
 
 func (m Model) computeElapsed() int {
@@ -378,6 +418,11 @@ func (m Model) afterAction(res game.ActionResult, wasReady bool) (Model, tea.Cmd
 		m.timerActive = true
 		m.elapsed = 0
 		cmd = tickCmd()
+	}
+
+	// A finished game is no longer something to resume.
+	if res.Status == game.StatusLost || res.Status == game.StatusWon {
+		_ = storage.ClearSession()
 	}
 
 	switch res.Status {

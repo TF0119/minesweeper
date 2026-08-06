@@ -22,6 +22,11 @@ type Model struct {
 
 	dailySeed game.Seed // today's challenge, for labelling the current board
 
+	// boardNoGuess records what the current board was generated with. The
+	// config setting only applies to the next board, so it cannot stand in
+	// when this one has to be rebuilt.
+	boardNoGuess bool
+
 	elapsed     int
 	timerActive bool
 	timerStart  time.Time
@@ -66,21 +71,60 @@ var timeNow = time.Now
 // NewModel creates a new UI model.
 func NewModel(opts Options) Model {
 	d := opts.Difficulty
-	return Model{
-		board:      newBoard(d, opts.Seed, opts.Config.NoGuess),
-		cursor:     game.Coord{X: d.Width / 2, Y: d.Height / 2},
-		screen:     ScreenPlaying,
-		difficulty: d,
-		config:     opts.Config,
-		highscores: opts.HighScores,
-		stats:      opts.Stats,
-		useColor:   !opts.NoColor,
-		dailySeed:  game.DailySeed(timeNow()),
-		vp:         fit(viewport{}, 0, 0, d.Width, d.Height),
-		styles:     NewStyles(themeFromConfig(opts.Config), !opts.NoColor),
-		glyphs:     newGlyphs(opts.Config.UseEmoji),
-		keys:       DefaultKeyMap(),
+	m := Model{
+		board:        newBoard(d, opts.Seed, opts.Config.NoGuess),
+		cursor:       game.Coord{X: d.Width / 2, Y: d.Height / 2},
+		screen:       ScreenPlaying,
+		difficulty:   d,
+		boardNoGuess: opts.Config.NoGuess,
+		config:       opts.Config,
+		highscores:   opts.HighScores,
+		stats:        opts.Stats,
+		useColor:     !opts.NoColor,
+		dailySeed:    game.DailySeed(timeNow()),
+		vp:           fit(viewport{}, 0, 0, d.Width, d.Height),
+		styles:       NewStyles(themeFromConfig(opts.Config), !opts.NoColor),
+		glyphs:       newGlyphs(opts.Config.UseEmoji),
+		keys:         DefaultKeyMap(),
 	}
+	if opts.Session != nil {
+		m = m.restoreSession(*opts.Session)
+	}
+	m.playVp = m.vp
+	m.playCursor = m.cursor
+	return m
+}
+
+// restoreSession rebuilds the board the player left behind by replaying their
+// moves onto a fresh one. A game that turns out to be over is dropped rather
+// than shown: the file is a courtesy, not a source of truth worth trusting
+// over the rules.
+func (m Model) restoreSession(s storage.Session) Model {
+	b := newBoard(s.Difficulty, s.Seed, s.NoGuess)
+	game.Replay{Seed: s.Seed, Difficulty: s.Difficulty, Moves: s.Moves}.Apply(b, len(s.Moves))
+	if b.Status() != game.StatusPlaying {
+		return m
+	}
+
+	w, h := b.Width(), b.Height()
+	m.board = b
+	m.difficulty = s.Difficulty
+	m.boardNoGuess = s.NoGuess
+	m.moveLog = append([]game.Move(nil), s.Moves...)
+	m.cursor = game.Coord{
+		X: clamp(s.Cursor.X, 0, w-1),
+		Y: clamp(s.Cursor.Y, 0, h-1),
+	}
+	m.vp = fit(viewport{}, 0, 0, w, h)
+
+	// The clock counts time spent playing, so it picks up where it stopped
+	// rather than from zero or from when the game was closed.
+	m.elapsed = clamp(s.Seconds, 0, maxDisplaySeconds)
+	if b.ElapsedReady() {
+		m.timerActive = true
+		m.timerStart = timeNow().Add(-time.Duration(m.elapsed) * time.Second)
+	}
+	return m
 }
 
 // themeFromConfig resolves the saved theme name. A name this build does not
