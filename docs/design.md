@@ -147,6 +147,23 @@ moves during play and `storage` persists them on disk. Playback rebuilds a board
 from the seed and applies moves in order; timelapse is just that loop on a timer
 in the UI layer, not logic in the game package.
 
+## Resuming an unfinished game
+
+Quitting mid-game writes `session.json`; the next launch replays it and puts the
+player back on the same board. The file stores the seed and the moves rather
+than the board, which is the same trick recordings use: one description of what
+happened instead of two that can drift apart. It also means the restore path is
+`Replay.Apply`, already exercised by the timelapse.
+
+Two rules keep a stale game from surprising anyone. Finishing clears the file,
+so a won board never comes back. Quitting with nothing to resume also clears it,
+or starting a fresh board and closing it would resurrect the game before that.
+
+The clock counts time spent playing, so a resumed game continues from the saved
+figure rather than restarting or charging the player for the hours it was
+closed. Naming a board with `-seed`, `-daily`, or `-difficulty` skips the saved
+game: an explicit request should win over an implicit one.
+
 ## Errors defined out of existence
 
 Board actions return `ActionResult{Ok: false}` rather than an error when they do

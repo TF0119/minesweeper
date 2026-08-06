@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-08-06
+
+### Added
+
+- Quitting mid-game now saves it. Launching with no arguments puts you back on
+  the same board with your flags, your revealed cells, and the clock continuing
+  from where it stopped. Finishing a game clears the save, and naming a board
+  with `-seed`, `-daily`, or `-difficulty` starts that one instead
+
+### Fixed
+
+- `Ctrl+C` closed the current sub-screen instead of quitting on the settings,
+  difficulty, watch, and timelapse screens
+
 ## [0.4.2] - 2026-08-06
 
 ### Fixed

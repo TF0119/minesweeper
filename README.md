@@ -53,7 +53,8 @@ minesweeper -theme dark              # classic, dark or colorblind
 minesweeper -no-color
 ```
 
-Settings, high scores, and statistics live in `~/.config/minesweeper/`. Options
+Settings, high scores, statistics, and an unfinished game live in
+`~/.config/minesweeper/`. Options
 are resolved in one order: built-in defaults, then the config file, then
 command-line flags. `-no-guess` and `-theme` are remembered for next time; turn
 no-guess back off with `-no-guess=false`.
@@ -97,6 +98,17 @@ seed so you can try again.
 
 Settings in the menu cover theme, no-guess boards, question marks, and emoji
 glyphs — the same options as the config file and flags.
+
+### Picking up where you left off
+
+Quitting in the middle of a game saves it. Start `minesweeper` again with no
+arguments and the same board comes back, with your flags, your revealed cells,
+and the clock continuing from where it stopped. Finishing a game clears the
+save, so a board you already won never reappears.
+
+Asking for a particular board skips the saved game — `-seed`, `-daily`, and
+`-difficulty` all mean "deal this one instead". Press `n` at any time for a
+fresh board.
 
 ## Controls
 
