@@ -42,7 +42,7 @@ func (m Model) saveReplay(won bool) {
 }
 
 func (m Model) loadReplays() Model {
-	list, err := storage.ListReplays(20)
+	list, err := storage.ListReplays(storage.MaxReplays)
 	if err != nil {
 		m.replays = nil
 		return m
@@ -66,10 +66,14 @@ func (m Model) renderReplays() string {
 			result = "won"
 		}
 		date := r.PlayedAt.UTC().Format("2006-01-02")
-		lines = append(lines, fmt.Sprintf("%s%s  %s  %ds  %d moves  %s",
-			prefix, m.difficultyLabelFor(r.Difficulty), result, r.Seconds, len(r.Moves), date))
+		line := fmt.Sprintf("%s%s  %s  %ds  %d moves  %s",
+			prefix, m.difficultyLabelFor(r.Difficulty), result, r.Seconds, len(r.Moves), date)
+		if r.NoGuess {
+			line += "  no-guess"
+		}
+		lines = append(lines, line)
 	}
-	lines = append(lines, "", "enter timelapse · esc back")
+	lines = append(lines, "", "enter timelapse · x delete · esc back")
 	return m.renderOverlay("Watch", strings.Join(lines, "\n"))
 }
 
@@ -227,6 +231,20 @@ func (m Model) handleReplaysKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case "esc":
 		return m.popScreen(), nil
+	case "x":
+		if len(m.replays) == 0 {
+			return m, nil
+		}
+		id := m.replays[m.menuIndex].ID
+		_ = storage.DeleteReplay(id)
+		m = m.loadReplays()
+		if len(m.replays) == 0 {
+			m.menuIndex = 0
+		} else {
+			m.menuIndex = clamp(m.menuIndex, 0, len(m.replays)-1)
+		}
+		m.notice = "deleted"
+		return m, nil
 	case "enter", " ":
 		if len(m.replays) == 0 {
 			return m, nil

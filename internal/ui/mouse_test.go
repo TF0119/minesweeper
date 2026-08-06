@@ -26,10 +26,32 @@ func TestClassifyMouseEvent(t *testing.T) {
 			want: mouseClick{flag: true},
 		},
 		{
+			name: "middle release chords",
+			msg:  tea.MouseMsg{Button: tea.MouseButtonMiddle, Action: tea.MouseActionRelease},
+			want: mouseClick{chord: true},
+		},
+		{
+			name:   "middle press waits for release",
+			msg:    tea.MouseMsg{Button: tea.MouseButtonMiddle, Action: tea.MouseActionPress},
+			want:   mouseClick{},
+			wantSt: tea.MouseButtonMiddle,
+		},
+		{
+			name: "legacy middle type",
+			msg:  tea.MouseMsg{Type: tea.MouseMiddle, Action: tea.MouseActionPress},
+			want: mouseClick{chord: true},
+		},
+		{
 			name: "x10 release uses last button",
 			msg:  tea.MouseMsg{Button: tea.MouseButtonNone, Action: tea.MouseActionRelease, Type: tea.MouseRelease},
 			last: tea.MouseButtonRight,
 			want: mouseClick{flag: true},
+		},
+		{
+			name: "x10 middle release uses last button",
+			msg:  tea.MouseMsg{Button: tea.MouseButtonNone, Action: tea.MouseActionRelease, Type: tea.MouseRelease},
+			last: tea.MouseButtonMiddle,
+			want: mouseClick{chord: true},
 		},
 		{
 			name:   "shift left flags",

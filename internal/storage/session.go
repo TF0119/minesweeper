@@ -59,6 +59,9 @@ func LoadSession() (Session, bool, error) {
 	}
 	var s Session
 	if err := json.Unmarshal(data, &s); err != nil {
+		// Corrupt JSON is not a game worth keeping: delete it so the next
+		// launch does not warn about the same file again.
+		_ = os.Remove(path)
 		return Session{}, false, err
 	}
 	// A game with no moves has nothing to restore, and a board that cannot be

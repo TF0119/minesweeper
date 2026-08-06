@@ -287,7 +287,7 @@ func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 
 	click, lastBtn := classifyMouseEvent(msg, m.lastMouseBtn)
 	m.lastMouseBtn = lastBtn
-	if !click.flag && !click.reveal {
+	if !click.flag && !click.reveal && !click.chord {
 		return m, nil
 	}
 
@@ -296,10 +296,14 @@ func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	m.cursor = c
-	if click.flag {
+	switch {
+	case click.flag:
 		return m.applyFlag(c)
+	case click.chord:
+		return m.applyChord(c)
+	default:
+		return m.applyReveal(c)
 	}
-	return m.applyReveal(c)
 }
 
 func (m Model) withCursor(dx, dy int) Model {
@@ -441,6 +445,7 @@ func (m Model) afterAction(res game.ActionResult, wasReady bool) (Model, tea.Cmd
 		m.saveReplay(true)
 		if m.highscores.TryUpdate(m.difficulty.Key(), m.elapsed, m.difficulty) {
 			_ = storage.SaveHighScores(m.highscores)
+			m.notice = "new best"
 		}
 		m.stats.RecordWin(m.difficulty.Key(), m.elapsed)
 		_ = storage.SaveStats(m.stats)
