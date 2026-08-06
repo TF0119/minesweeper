@@ -11,7 +11,7 @@ way it does, not to restate what the code already says.
 | CLI | `cmd/minesweeper` | flags, exit codes | Parse arguments, resolve options |
 | UI | `internal/ui` | `tea.Msg`, lipgloss styles | Input, rendering, timer |
 | Game | `internal/game` | `Coord`, `Board`, `ActionResult` | Rules and state machine |
-| Storage | `internal/storage` | JSON, XDG paths | Config, high scores, statistics |
+| Storage | `internal/storage` | JSON, XDG paths | Config, high scores, statistics, session, replays |
 
 Complexity lives in `internal/game`. The UI never sees mine positions; it reads
 `CellView`, which exposes only what a player is allowed to know. That is what
@@ -146,9 +146,10 @@ Recordings live in `internal/game` as `Replay` (seed + moves + whether the
 board was generated with no-guess). Classic and no-guess draw differently from
 the same seed, so playback must use the same generator the original game did.
 Older JSON without `no_guess` loads as classic. The UI appends moves during play
-and `storage` persists them on disk. Playback rebuilds a board from the seed and
-applies moves in order; timelapse is just that loop on a timer in the UI layer,
-not logic in the game package.
+and `storage` persists them on disk, keeping the newest `MaxReplays` files and
+letting Watch delete one with `x`. Corrupt replay files are removed when listed.
+Playback rebuilds a board from the seed and applies moves in order; timelapse is
+just that loop on a timer in the UI layer, not logic in the game package.
 
 ## Resuming an unfinished game
 
@@ -163,7 +164,8 @@ so a won board never comes back. Starting a fresh board (`n`, New game, Daily,
 or a difficulty change) clears it immediately, so killing the process after
 abandoning a game cannot resurrect the previous one. Quitting with nothing to
 resume also clears it. A finished or unusable file that somehow remains is
-deleted when restore or load rejects it, rather than re-read on every launch.
+deleted when restore or load rejects it (including corrupt JSON), rather than
+re-read on every launch.
 
 The clock counts time spent playing, so a resumed game continues from the saved
 figure rather than restarting or charging the player for the hours it was

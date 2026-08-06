@@ -177,10 +177,38 @@ func TestSessionLossRecordsReplayAndMenuStillOpens(t *testing.T) {
 		t.Fatalf("lost game not watchable: screen = %v, replays = %d", s.m.screen, len(s.m.replays))
 	}
 
+	s.key("x")
+	if len(s.m.replays) != 0 {
+		t.Errorf("x should delete the selected replay, still have %d", len(s.m.replays))
+	}
+	if s.m.notice != "deleted" {
+		t.Errorf("notice = %q, want deleted", s.m.notice)
+	}
+	list, err := storage.ListReplays(10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 0 {
+		t.Error("deleted replay is still on disk")
+	}
+
 	s.key("esc")
 	s.key("esc")
 	if s.m.screen != ScreenGameOver {
 		t.Errorf("screen = %v, want ScreenGameOver after closing the menu", s.m.screen)
+	}
+}
+
+func TestWinningSetsNewBestNotice(t *testing.T) {
+	s := newSession(t)
+	if !s.playToWin(game.Coord{X: 4, Y: 4}) {
+		t.Fatalf("never reached a win; status = %v", s.m.board.Status())
+	}
+	if s.m.screen != ScreenWin {
+		t.Fatalf("screen = %v, want ScreenWin", s.m.screen)
+	}
+	if s.m.notice != "new best" {
+		t.Errorf("notice = %q, want new best on a first win", s.m.notice)
 	}
 }
 

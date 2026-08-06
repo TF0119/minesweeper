@@ -64,10 +64,10 @@ no-guess back off with `-no-guess=false`.
 Every board is generated from a seed shown in the status line. Pass that number
 back with `-seed` to replay the exact same layout, or press `r` in game to retry
 the board you just lost. `-daily` derives the seed from the current UTC date, so
-everyone who plays on the same day gets the same board.
-
-Seeds pin the mine layout, not your first click: the opening move is always safe,
-so the same seed can still start differently depending on where you click.
+everyone who plays on the same day with the same difficulty and no-guess setting
+gets the same seed. Seeds pin the mine layout, not your first click: the opening
+move is always safe, so the same seed can still start differently depending on
+where you click.
 
 ### No-guess boards
 
@@ -81,8 +81,9 @@ line says `guess needed` rather than pretending otherwise.
 
 ### Statistics
 
-Press `s` for wins, win rate, average winning time, and streaks per difficulty.
-Only finished games count, so starting a fresh board mid-game is not a loss.
+Press `s` for wins, win rate, average winning time, best time, and streaks per
+difficulty. Only finished games count, so starting a fresh board mid-game is not
+a loss. Beating your best time shows a brief `new best` notice.
 
 ### Menu and timelapse
 
@@ -90,10 +91,11 @@ Launch drops you straight into a game — there is no title screen. Press `m` or
 `Esc` during play to open the menu: new game, daily challenge, difficulty,
 statistics, settings, help, and quit are all there.
 
-Finished games are saved automatically. Menu → **Watch** lists them by
-difficulty, result, time, move count, and date; pick one and the moves play back
-as a **timelapse** (about three moves per second by default). `Space` pauses,
-`+`/`-` changes speed, `r` restarts, `Enter` replays when finished. This is not
+Finished games are saved automatically (newest 20 kept on disk). Menu → **Watch**
+lists them by difficulty, result, time, move count, and date; no-guess games are
+marked. Pick one and the moves play back as a **timelapse** (about three moves
+per second by default). `Space` pauses, `+`/`-` changes speed, `r` restarts,
+`Enter` replays when finished, `x` deletes the selected recording. This is not
 the same as `r` during play, which restarts the same seed so you can try again.
 
 Settings in the menu cover theme, no-guess boards, question marks, and emoji
@@ -105,7 +107,8 @@ Quitting in the middle of a game saves it. Start `minesweeper` again with no
 arguments and the same board comes back, with your flags, your revealed cells,
 and the clock continuing from where it stopped. Finishing a game clears the
 save, so a board you already won never reappears. Starting a fresh board with
-`n` also clears it.
+`n`, New game, Daily challenge, or a difficulty change also clears it
+immediately.
 
 Asking for a particular board skips the saved game — `-seed`, `-daily`,
 `-difficulty`, and custom size flags all mean "deal this one instead". Preference
@@ -128,16 +131,17 @@ unfinished game still resumes. Press `n` at any time for a fresh board.
 | `?` | Help |
 | `q` / Ctrl+C | Quit |
 
-During a timelapse (Menu → Watch): `Space` pauses, `+`/`-` changes speed,
-`r` restarts playback, `Esc` / `q` returns to the list.
+Menu → Watch: `Enter` starts a timelapse, `x` deletes the selected recording,
+`Esc` / `q` goes back. During a timelapse: `Space` pauses, `+`/`-` changes
+speed, `r` restarts playback, `Esc` / `q` returns to the list.
 
 A `?` is only a note to yourself: it does not stop a reveal and does not count
 towards a chord. Set `"question_marks": false` in the config to make `f` a plain
 flag toggle.
 
-Mouse: left click reveals, right click or Shift+left click marks. Some terminals
-(notably Windows Terminal and WSL) intercept right-click for paste, so Shift+left
-click is the reliable option there.
+Mouse: left click reveals, right click or Shift+left click marks, middle click
+chords. Some terminals (notably Windows Terminal and WSL) intercept right-click
+for paste, so Shift+left click is the reliable mark option there.
 
 Boards larger than the window scroll to follow the cursor, so Expert works on
 small terminals. Cell state never depends on colour alone, so `-no-color`,

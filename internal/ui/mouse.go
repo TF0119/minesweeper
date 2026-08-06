@@ -6,6 +6,7 @@ import tea "github.com/charmbracelet/bubbletea"
 type mouseClick struct {
 	flag   bool
 	reveal bool
+	chord  bool
 }
 
 // classifyMouseEvent normalizes terminal-specific mouse encodings.
@@ -35,7 +36,7 @@ func classifyMouseEvent(msg tea.MouseMsg, lastBtn tea.MouseButton) (click mouseC
 	}
 
 	switch btn {
-	case tea.MouseButtonRight, tea.MouseButtonMiddle:
+	case tea.MouseButtonRight:
 		switch msg.Action {
 		case tea.MouseActionRelease:
 			return mouseClick{flag: true}, storeBtn
@@ -43,6 +44,15 @@ func classifyMouseEvent(msg tea.MouseMsg, lastBtn tea.MouseButton) (click mouseC
 			// X10 terminals sometimes emit only a press with the legacy Type set.
 			if msg.Button == tea.MouseButtonNone && buttonFromLegacyType(msg.Type) != tea.MouseButtonNone {
 				return mouseClick{flag: true}, storeBtn
+			}
+		}
+	case tea.MouseButtonMiddle:
+		switch msg.Action {
+		case tea.MouseActionRelease:
+			return mouseClick{chord: true}, storeBtn
+		case tea.MouseActionPress:
+			if msg.Button == tea.MouseButtonNone && buttonFromLegacyType(msg.Type) != tea.MouseButtonNone {
+				return mouseClick{chord: true}, storeBtn
 			}
 		}
 	case tea.MouseButtonLeft:

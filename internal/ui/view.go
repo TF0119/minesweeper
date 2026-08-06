@@ -239,8 +239,8 @@ func (m Model) statusHintsFor() []string {
 		}
 	case ScreenReplays:
 		return []string{
-			" enter timelapse · esc back ",
-			" enter · esc ",
+			" enter timelapse · x delete · esc back ",
+			" enter · x · esc ",
 		}
 	case ScreenReplayWatch:
 		return []string{
@@ -301,14 +301,17 @@ func (m Model) renderDifficultyMenu() string {
 }
 
 func (m Model) renderStats() string {
-	rows := []string{fmt.Sprintf("%-13s %6s %6s %8s %7s %7s",
-		"", "played", "won", "win rate", "avg", "streak")}
+	rows := []string{fmt.Sprintf("%-13s %6s %6s %8s %7s %7s %7s",
+		"", "played", "won", "win rate", "avg", "best", "streak")}
 
 	for _, p := range menuPresets {
-		t := m.stats.For(game.PresetDifficulty(p).Key())
-		rows = append(rows, fmt.Sprintf("%-13s %6d %6d %7.0f%% %7s %7s",
+		key := game.PresetDifficulty(p).Key()
+		t := m.stats.For(key)
+		rows = append(rows, fmt.Sprintf("%-13s %6d %6d %7.0f%% %7s %7s %7s",
 			p.String(), t.Played, t.Won, t.WinRate()*100,
-			secondsLabel(t.AverageWinSeconds()), streakLabel(t)))
+			secondsLabel(t.AverageWinSeconds()),
+			secondsLabel(m.highscores.Best(key)),
+			streakLabel(t)))
 	}
 
 	rows = append(rows, "", "Only finished games count. Starting a new board mid-game does not.")
@@ -331,8 +334,10 @@ func streakLabel(t storage.Tally) string {
 func (m Model) renderHelp() string {
 	body := strings.Join(m.keys.helpLines(), "\n") +
 		"\n\n" + m.markCycleHelp() +
-		"\nMouse: left reveals, shift+left or right marks." +
-		"\nSome terminals paste on right-click; shift+left always works."
+		"\nMouse: left reveals, right marks, middle chords." +
+		"\nSome terminals paste on right-click; shift+left always marks." +
+		"\n\nWatch (Menu → Watch): enter starts a timelapse, x deletes." +
+		"\nTimelapse: space pause · +/- speed · r restart · esc back."
 	return m.renderOverlay("Help", body)
 }
 
