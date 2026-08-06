@@ -238,6 +238,15 @@ func (m Model) statusHintsFor() []string {
 			" esc · q ",
 		}
 	case ScreenReplays:
+		// An empty list has nothing to play or delete, and the screen itself
+		// says so. Offering those keys anyway advertises what pressing them
+		// cannot do.
+		if len(m.replays) == 0 {
+			return []string{
+				" esc back ",
+				" esc ",
+			}
+		}
 		return []string{
 			" enter timelapse · x delete · esc back ",
 			" enter · x · esc ",

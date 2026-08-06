@@ -197,3 +197,26 @@ func TestSaveReplayRecordsNoGuess(t *testing.T) {
 		t.Errorf("saved replay = %+v, want NoGuess true", list)
 	}
 }
+
+func TestReplayListShowsLocalDate(t *testing.T) {
+	restore := time.Local
+	time.Local = time.FixedZone("JST", 9*60*60)
+	defer func() { time.Local = restore }()
+
+	// Recordings are stored in UTC. 17:10 UTC is already the next day in JST,
+	// so formatting the list in UTC dates a game played after 9am local time
+	// to yesterday for anyone far enough east.
+	m := testModel()
+	m.replays = []game.Replay{{
+		Seed:       game.Seed(1),
+		Difficulty: game.PresetDifficulty(game.Beginner),
+		Won:        true,
+		Seconds:    12,
+		PlayedAt:   time.Date(2026, 8, 6, 17, 10, 0, 0, time.UTC),
+	}}
+
+	out := m.renderReplays()
+	if !strings.Contains(out, "2026-08-07") {
+		t.Errorf("replay list = %q, want the local date 2026-08-07", out)
+	}
+}

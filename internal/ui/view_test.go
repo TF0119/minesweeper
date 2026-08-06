@@ -307,6 +307,12 @@ func TestHubResumeLabelDependsOnReturnTarget(t *testing.T) {
 }
 
 func TestWatchListShowsDifficultyAndDate(t *testing.T) {
+	// The list formats in local time, so pin the zone: otherwise this test
+	// reads a different date depending on where it runs.
+	restore := time.Local
+	time.Local = time.UTC
+	defer func() { time.Local = restore }()
+
 	m := testModel()
 	m.replays = []game.Replay{{
 		Seed:       game.Seed(7),
@@ -331,8 +337,29 @@ func TestWatchListShowsDifficultyAndDate(t *testing.T) {
 func TestWatchStatusBarMentionsDelete(t *testing.T) {
 	m := testModel()
 	m.screen = ScreenReplays
+	m.replays = []game.Replay{{
+		Seed:       game.Seed(1),
+		Difficulty: game.PresetDifficulty(game.Beginner),
+	}}
 	m.width = 120
 	if got := m.renderStatusBar(); !strings.Contains(got, "x delete") {
 		t.Errorf("watch status = %q, want x delete", got)
+	}
+}
+
+// With nothing recorded, enter and x are dead keys. The screen body already
+// says so, and the status bar has to agree with it.
+func TestEmptyWatchStatusBarOffersOnlyBack(t *testing.T) {
+	m := testModel()
+	m.screen = ScreenReplays
+	m.width = 120
+	got := m.renderStatusBar()
+	for _, unwanted := range []string{"x delete", "timelapse"} {
+		if strings.Contains(got, unwanted) {
+			t.Errorf("empty watch status = %q, should not offer %q", got, unwanted)
+		}
+	}
+	if !strings.Contains(got, "esc back") {
+		t.Errorf("empty watch status = %q, want esc back", got)
 	}
 }
