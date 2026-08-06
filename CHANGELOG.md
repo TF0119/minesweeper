@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.4.2] - 2026-08-06
 
 ### Fixed
 
@@ -22,6 +22,8 @@ All notable changes to this project will be documented in this file.
 - `+` and `-` during a timelapse only took effect on the next frame
 - Actions that changed nothing were recorded, spending timelapse frames
   showing nothing happen
+- The difficulty menu highlighted Beginner while a custom board was in play; it
+  now names the custom board instead of implying a preset
 
 ## [0.4.1] - 2026-08-06
 
