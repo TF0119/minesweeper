@@ -19,6 +19,11 @@ All notable changes to this project will be documented in this file.
   a watched replay), not the setting for the next board
 - Watch listing counts successfully parsed recordings toward its limit, and
   deletes corrupt replay files so they cannot hide newer games
+- The Watch list dates each recording in local time. It formatted in UTC while
+  the file name used local time, so one game could be filed under two different
+  days, and anything played before 9am in Tokyo was listed as yesterday
+- The status bar stops offering `enter timelapse` and `x delete` when there is
+  nothing recorded to play or delete
 
 ### Added
 
@@ -36,6 +41,12 @@ All notable changes to this project will be documented in this file.
 - Resuming a saved game shows a brief `resumed` notice until the next key
 - Watch lists difficulty, result, time, move count, date, and `no-guess` when
   relevant, instead of the seed
+- Boards that deduction alone can clear are now the default, so a game no longer
+  ends on a coin flip. Every preset yields one; the search only comes up empty on
+  dense custom boards, which still start and say `guess needed`. A config file
+  written by an earlier version is moved onto the new default, because its
+  `no_guess: false` recorded the old default rather than a decision — turn it
+  back off in Settings or with `-no-guess=false`
 
 ## [0.5.0] - 2026-08-06
 

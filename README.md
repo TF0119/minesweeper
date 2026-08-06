@@ -48,7 +48,7 @@ minesweeper -difficulty expert
 minesweeper -difficulty custom -width 20 -height 10 -mines 30
 minesweeper -daily                   # today's challenge, same board for everyone
 minesweeper -seed 1487233901         # replay a specific board
-minesweeper -no-guess                # only boards solvable by deduction
+minesweeper -no-guess=false          # allow boards that can need a guess
 minesweeper -theme dark              # classic, dark or colorblind
 minesweeper -no-color
 ```
@@ -72,12 +72,18 @@ where you click.
 ### No-guess boards
 
 Minesweeper normally ends some games on a coin flip. Of 200 random Expert boards,
-only 13 can be cleared by reasoning alone. With `-no-guess` the generator keeps
-laying out mines until it finds one its solver can finish using nothing but the
-deductions a player makes — counting neighbours, comparing overlapping numbers,
-and watching the mine counter. The search costs a few tens of milliseconds on the
-opening click. If it comes up empty the board is still playable and the status
-line says `guess needed` rather than pretending otherwise.
+only 13 can be cleared by reasoning alone, so this game does not deal them. The
+generator keeps laying out mines until it finds one its solver can finish using
+nothing but the deductions a player makes — counting neighbours, comparing
+overlapping numbers, and watching the mine counter. This is the default; pass
+`-no-guess=false`, or turn it off in Settings, for ordinary boards.
+
+The search costs a few tens of milliseconds on the opening click, and every
+preset difficulty yields to it: 200 boards each of Beginner, Intermediate, and
+Expert were all solvable. It only comes up empty on dense custom boards, from
+roughly a third of the cells mined upward, where such a layout may not exist at
+all. When that happens the board is still playable and the status line says
+`guess needed` rather than pretending otherwise.
 
 ### Statistics
 

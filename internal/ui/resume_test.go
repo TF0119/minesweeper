@@ -184,6 +184,7 @@ func TestResumeIgnoresAFinishedSession(t *testing.T) {
 	finished := storage.Session{
 		Seed:       seed,
 		Difficulty: s.m.difficulty,
+		NoGuess:    s.m.boardNoGuess,
 		Moves:      append([]game.Move(nil), s.m.moveLog...),
 		Seconds:    5,
 		SavedAt:    time.Now(),
