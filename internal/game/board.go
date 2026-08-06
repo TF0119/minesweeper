@@ -117,6 +117,23 @@ func (b *Board) CanChord(c Coord) bool {
 	return flags == cell.Adjacent
 }
 
+// MarkAt returns the mark on a cell.
+func (b *Board) MarkAt(c Coord) Mark {
+	if !c.InBounds(b.width, b.height) {
+		return MarkNone
+	}
+	return b.cell(c).Mark
+}
+
+// SetMark places a mark on a hidden cell without cycling.
+func (b *Board) SetMark(c Coord, mark Mark) ActionResult {
+	if !b.CanMark(c) {
+		return b.noop()
+	}
+	b.cell(c).Mark = mark
+	return b.result([]Coord{c})
+}
+
 // Reveal opens a cell and may trigger flood fill.
 func (b *Board) Reveal(c Coord) ActionResult {
 	if !b.CanReveal(c) {

@@ -15,6 +15,9 @@ const (
 type Move struct {
 	Kind MoveKind `json:"kind"`
 	Coord
+	// TargetMark is the mark left on the cell after a MoveMark. Older replays
+	// omit this and fall back to a single flag cycle.
+	TargetMark *Mark `json:"target_mark,omitempty"`
 }
 
 // Replay is a finished game that can be watched again. The seed pins the mine
@@ -42,7 +45,11 @@ func (r Replay) Apply(b *Board, n int) {
 		case MoveReveal:
 			b.Reveal(m.Coord)
 		case MoveMark:
-			b.CycleMark(m.Coord, true) // marks in a replay are flags only
+			if m.TargetMark != nil {
+				b.SetMark(m.Coord, *m.TargetMark)
+			} else {
+				b.CycleMark(m.Coord, true)
+			}
 		case MoveChord:
 			b.Chord(m.Coord)
 		}
