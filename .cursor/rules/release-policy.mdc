@@ -1,0 +1,48 @@
+---
+description: When to cut a minesweeper release and what must be true before tagging.
+alwaysApply: true
+---
+
+# Release Policy
+
+Landing a change and releasing it are separate decisions. The default after
+finishing work is **no tag**: add the entry to `## [Unreleased]` in
+`CHANGELOG.md`, commit, and stop there.
+
+## Numbering
+
+Semantic versioning. While the project is `0.x`, MINOR carries breaking changes.
+
+| Change | Bump |
+|---|---|
+| A user-visible feature | MINOR (`0.5.0` → `0.6.0`) |
+| A bug fix or wording change | PATCH (`0.5.0` → `0.5.1`) |
+
+## When to cut one
+
+Tag only when one of these holds, and name which one when proposing it:
+
+- A user-visible feature is complete and documented.
+- Fixes have piled up in `Unreleased` and the last release was on an earlier day.
+- **Hotfix**: the released version is broken. This is the only case that allows a
+  second release on the same day.
+
+v0.4.0 through v0.5.0 shipped in one afternoon, and two of those releases existed
+only to clean up bugs the previous one introduced. Accumulating would have
+produced a single good release.
+
+## Before tagging
+
+1. `make check` is green.
+2. `make build`, then actually play the binary: open cells, flag, finish a game,
+   and exercise whatever changed. Green tests did not catch a menu that could not
+   be opened from the game-over screen.
+3. `CHANGELOG.md` has an `Unreleased` section with real entries. Rename it to the
+   version being cut.
+4. The code is already committed and pushed, and was **not written in this same
+   turn**. Verify first, tag later.
+
+## Never
+
+- Tag to make a task feel finished. An unreleased change on `main` is finished.
+- Write a CHANGELOG entry from memory of the diff instead of reading it.
