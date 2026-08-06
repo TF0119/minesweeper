@@ -137,3 +137,29 @@ func TestFlagsGivenDistinguishesAbsentFromFalse(t *testing.T) {
 		t.Error("-no-guess=false should parse as false")
 	}
 }
+
+func TestBoardRequestedGuardsTheSavedGame(t *testing.T) {
+	tests := []struct {
+		name  string
+		given []string
+		want  bool
+	}{
+		{"nothing typed", nil, false},
+		{"appearance only", []string{"theme", "no-color", "no-guess"}, false},
+		{"a difficulty", []string{"difficulty"}, true},
+		{"custom dimensions", []string{"width", "height"}, true},
+		{"a seed", []string{"seed"}, true},
+		{"the daily challenge", []string{"daily"}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			given := make(map[string]bool, len(tt.given))
+			for _, name := range tt.given {
+				given[name] = true
+			}
+			if got := boardRequested(given); got != tt.want {
+				t.Errorf("boardRequested(%v) = %v, want %v", tt.given, got, tt.want)
+			}
+		})
+	}
+}

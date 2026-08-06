@@ -93,6 +93,18 @@ func run(args []string) error {
 		config.Theme = *theme
 	}
 
+	// An unfinished game is only picked up when the command line did not ask
+	// for a particular board. Typing -daily means today's challenge, not
+	// whatever was left open yesterday.
+	var session *storage.Session
+	if !boardRequested(given) {
+		if s, ok := loadSession(); ok {
+			session = &s
+			d = s.Difficulty
+			seed = s.Seed
+		}
+	}
+
 	config = rememberPreferences(config, d)
 
 	return ui.Run(ui.Options{
@@ -102,7 +114,29 @@ func run(args []string) error {
 		HighScores: scores,
 		Stats:      stats,
 		NoColor:    *noColor,
+		Session:    session,
 	})
+}
+
+// boardRequested reports whether the flags name a specific board.
+func boardRequested(given map[string]bool) bool {
+	for _, name := range []string{"difficulty", "width", "height", "mines", "seed", "daily"} {
+		if given[name] {
+			return true
+		}
+	}
+	return false
+}
+
+// loadSession treats a damaged file as no session at all: failing to resume
+// should cost the player a board, not a launch.
+func loadSession() (storage.Session, bool) {
+	s, ok, err := storage.LoadSession()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "minesweeper: ignoring the saved game:", err)
+		return storage.Session{}, false
+	}
+	return s, ok
 }
 
 // loadConfig falls back to defaults so a damaged file never blocks play.
