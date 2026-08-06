@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- Winning prints a three-line share card (daily date or seed, difficulty and
+  time, project URL). The victory overlay shows it, and quitting from that
+  screen reprints it on the normal terminal for easy pasting
+
 ## [0.6.0] - 2026-08-07
 
 ### Fixed

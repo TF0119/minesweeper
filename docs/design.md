@@ -136,6 +136,15 @@ single-key shortcuts.
 `screenStack` remembers nested screens so `Esc` unwinds Menu → Watch →
 timelapse without trapping the player on the hub.
 
+## Sharing a win
+
+A cleared board builds a three-line share card: which board (daily date or
+seed), how it was played (difficulty, no-guess, time), and the project URL.
+The victory overlay shows it, and quitting from a win reprints it after the
+alt screen closes so the player can paste it without selecting inside the TUI.
+Starting a fresh board drops the card — only the win just earned is worth
+sharing.
+
 ## Timelapse
 
 `r` during play restarts the same seed — a new attempt at the same layout.

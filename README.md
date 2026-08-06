@@ -10,6 +10,7 @@ without ever guessing.
 
 [![CI](https://github.com/TF0119/minesweeper/actions/workflows/ci.yml/badge.svg)](https://github.com/TF0119/minesweeper/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/TF0119/minesweeper?logo=github)](https://github.com/TF0119/minesweeper/releases/latest)
+[![GitHub Stars](https://img.shields.io/github/stars/TF0119/minesweeper?style=social)](https://github.com/TF0119/minesweeper/stargazers)
 [![Go Report Card](https://goreportcard.com/badge/github.com/TF0119/minesweeper)](https://goreportcard.com/report/github.com/TF0119/minesweeper)
 [![Go Reference](https://pkg.go.dev/badge/github.com/TF0119/minesweeper.svg)](https://pkg.go.dev/github.com/TF0119/minesweeper)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -68,6 +69,10 @@ everyone who plays on the same day with the same difficulty and no-guess setting
 gets the same seed. Seeds pin the mine layout, not your first click: the opening
 move is always safe, so the same seed can still start differently depending on
 where you click.
+
+Clearing a board shows a three-line share card (date or seed, difficulty and
+time, and the project URL). Quitting from that victory screen prints the same
+card to the terminal so it can be pasted into a chat.
 
 ### No-guess boards
 

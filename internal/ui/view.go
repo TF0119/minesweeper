@@ -370,6 +370,11 @@ func (m Model) renderWin() string {
 	if b := m.highscores.Best(m.difficulty.Key()); b >= 0 {
 		body += fmt.Sprintf("\nBest: %d seconds.", b)
 	}
+	// The share card is also printed on quit (outside the alt screen) so it
+	// can be selected and pasted into a chat without fighting the TUI.
+	if m.shareCard != "" {
+		body += "\n\n" + m.shareCard
+	}
 	return m.renderOverlay("Victory", body+"\n\n"+m.retryHint())
 }
 

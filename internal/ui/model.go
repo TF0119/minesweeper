@@ -40,6 +40,7 @@ type Model struct {
 	keys   KeyMap
 
 	notice       string
+	shareCard    string // set on a win; printed on quit so it survives alt-screen
 	menuIndex    int
 	quitting     bool
 	lastMouseBtn tea.MouseButton
