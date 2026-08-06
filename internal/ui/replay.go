@@ -65,7 +65,7 @@ func (m Model) renderReplays() string {
 		if r.Won {
 			result = "won"
 		}
-		date := r.PlayedAt.UTC().Format("2006-01-02")
+		date := r.PlayedAt.Local().Format("2006-01-02")
 		line := fmt.Sprintf("%s%s  %s  %ds  %d moves  %s",
 			prefix, m.difficultyLabelFor(r.Difficulty), result, r.Seconds, len(r.Moves), date)
 		if r.NoGuess {
