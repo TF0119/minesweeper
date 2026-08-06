@@ -37,6 +37,24 @@ func TestSeedLabelDistinguishesDailyBoards(t *testing.T) {
 	}
 }
 
+// The difficulty menu lists presets only, so a custom board has to say so or
+// the highlight on the first row looks like the current difficulty.
+func TestDifficultyMenuNamesTheCustomBoardInPlay(t *testing.T) {
+	m := testModel()
+	m.difficulty = game.Difficulty{Preset: game.Custom, Width: 20, Height: 10, Mines: 30}
+	m = m.withPresetIndex()
+
+	menu := m.renderDifficultyMenu()
+	if !strings.Contains(menu, "custom 20x10, 30 mines") {
+		t.Errorf("custom board not named in the menu:\n%s", menu)
+	}
+
+	m.difficulty = game.PresetDifficulty(game.Expert)
+	if got := m.renderDifficultyMenu(); strings.Contains(got, "playing custom") {
+		t.Errorf("preset board should not report a custom line:\n%s", got)
+	}
+}
+
 func TestScrollIndicatorAppearsOnlyWhenClipped(t *testing.T) {
 	m := NewModel(Options{
 		Difficulty: game.PresetDifficulty(game.Expert),

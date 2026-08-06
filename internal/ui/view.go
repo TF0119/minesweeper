@@ -249,6 +249,12 @@ func (m Model) renderDifficultyMenu() string {
 		lines = append(lines, fmt.Sprintf("%s%-13s %dx%d, %d mines",
 			prefix, p.String(), d.Width, d.Height, d.Mines))
 	}
+	// The menu has no row for a custom board, so the highlight would otherwise
+	// read as "you are playing beginner" to someone who passed -width/-height.
+	if m.difficulty.Preset == game.Custom {
+		lines = append(lines, "", fmt.Sprintf("  playing custom %dx%d, %d mines",
+			m.difficulty.Width, m.difficulty.Height, m.difficulty.Mines))
+	}
 	lines = append(lines, "", "enter select · esc back")
 	return m.renderOverlay("Difficulty", strings.Join(lines, "\n"))
 }
