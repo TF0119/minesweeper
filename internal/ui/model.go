@@ -10,13 +10,15 @@ import (
 
 // Model is the bubbletea model.
 type Model struct {
-	board      *game.Board
-	cursor     game.Coord
-	screen     Screen
-	difficulty game.Difficulty
-	config     storage.Config
-	highscores storage.HighScores
-	stats      storage.Stats
+	board        *game.Board
+	cursor       game.Coord
+	screen       Screen
+	returnScreen Screen // where esc returns from a sub-screen
+	difficulty   game.Difficulty
+	config       storage.Config
+	highscores   storage.HighScores
+	stats        storage.Stats
+	useColor     bool
 
 	dailySeed game.Seed // today's challenge, for labelling the current board
 
@@ -36,9 +38,22 @@ type Model struct {
 	menuIndex    int
 	quitting     bool
 	lastMouseBtn tea.MouseButton
+
+	moveLog     []game.Move
+	replays     []game.Replay
+	watchReplay *game.Replay
+	watchStep   int
+	watchBoard  *game.Board
+
+	// Timelapse playback: auto-advances recorded moves at watchInterval.
+	watchPlaying  bool
+	watchPaused   bool
+	watchInterval time.Duration
 }
 
 type tickMsg struct{}
+
+type replayTickMsg struct{}
 
 // timeNow is a variable so tests can pin the clock used for daily labelling.
 var timeNow = time.Now
@@ -54,6 +69,7 @@ func NewModel(opts Options) Model {
 		config:     opts.Config,
 		highscores: opts.HighScores,
 		stats:      opts.Stats,
+		useColor:   !opts.NoColor,
 		dailySeed:  game.DailySeed(timeNow()),
 		vp:         fit(viewport{}, 0, 0, d.Width, d.Height),
 		styles:     NewStyles(themeFromConfig(opts.Config), !opts.NoColor),
@@ -87,5 +103,17 @@ func (m Model) isDailyBoard() bool {
 func tickCmd() tea.Cmd {
 	return tea.Tick(time.Second, func(time.Time) tea.Msg {
 		return tickMsg{}
+	})
+}
+
+const (
+	defaultReplayInterval = 300 * time.Millisecond
+	minReplayInterval     = 75 * time.Millisecond
+	maxReplayInterval     = 1500 * time.Millisecond
+)
+
+func replayTickCmd(d time.Duration) tea.Cmd {
+	return tea.Tick(d, func(time.Time) tea.Msg {
+		return replayTickMsg{}
 	})
 }

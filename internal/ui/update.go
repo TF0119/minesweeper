@@ -28,13 +28,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.vp = m.vp.follow(m.cursor, m.board.Width(), m.board.Height())
 		return m, nil
 	case tickMsg:
-		// Only reschedule while the clock is running; otherwise finished games
-		// would leave a tick chain alive and make later games count too fast.
 		if m.timerActive && m.board.Status() == game.StatusPlaying {
 			m.elapsed = m.computeElapsed()
 			return m, tickCmd()
 		}
 		return m, nil
+	case replayTickMsg:
+		return m.handleReplayTick()
 	case tea.QuitMsg:
 		m.quitting = true
 		return m, tea.Quit
@@ -44,12 +44,44 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch m.screen {
-	case ScreenStats, ScreenHelp, ScreenGameOver, ScreenWin:
-		return m.handleOverlayKey(msg)
+	case ScreenMenu:
+		return m.handleHubMenuKey(msg)
+	case ScreenSettings:
+		return m.handleSettingsKey(msg)
 	case ScreenDifficultyMenu:
 		return m.handleDifficultyMenuKey(msg)
+	case ScreenReplays:
+		return m.handleReplaysKey(msg)
+	case ScreenReplayWatch:
+		return m.handleReplayWatchKey(msg)
+	case ScreenStats, ScreenHelp, ScreenGameOver, ScreenWin:
+		return m.handleOverlayKey(msg)
 	}
 	return m.handlePlayingKey(msg)
+}
+
+// pushScreen opens a sub-screen and remembers where to return on esc.
+func (m Model) pushScreen(screen Screen) Model {
+	m.returnScreen = m.screen
+	m.screen = screen
+	m.menuIndex = 0
+	if screen == ScreenReplays {
+		m = m.loadReplays()
+	}
+	return m
+}
+
+// popScreen returns to the screen that opened the current one.
+func (m Model) popScreen() Model {
+	m.screen = m.returnScreen
+	return m
+}
+
+func (m Model) openMenu() Model {
+	m.returnScreen = ScreenPlaying
+	m.screen = ScreenMenu
+	m.menuIndex = 0
+	return m
 }
 
 func (m Model) handleOverlayKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -61,8 +93,12 @@ func (m Model) handleOverlayKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Quit):
 		m.quitting = true
 		return m, tea.Quit
-	case m.screen == ScreenHelp, m.screen == ScreenStats:
-		m.screen = ScreenPlaying
+	}
+	if m.screen == ScreenGameOver || m.screen == ScreenWin {
+		return m, nil
+	}
+	if msg.String() == "esc" {
+		return m.popScreen(), nil
 	}
 	return m, nil
 }
@@ -73,13 +109,14 @@ func (m Model) handlePlayingKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		_ = storage.SaveConfig(m.config)
 		m.quitting = true
 		return m, tea.Quit
+	case key.Matches(msg, m.keys.Menu), msg.String() == "esc":
+		return m.openMenu(), nil
 	case key.Matches(msg, m.keys.Help):
-		m.screen = ScreenHelp
+		return m.pushScreen(ScreenHelp), nil
 	case key.Matches(msg, m.keys.Stats):
-		m.screen = ScreenStats
+		return m.pushScreen(ScreenStats), nil
 	case key.Matches(msg, m.keys.Difficulty):
-		m.screen = ScreenDifficultyMenu
-		m.menuIndex = m.presetIndex()
+		return m.pushScreen(ScreenDifficultyMenu).withPresetIndex(), nil
 	case key.Matches(msg, m.keys.New):
 		return m.startNewGame(m.difficulty, game.RandomSeed())
 	case key.Matches(msg, m.keys.Restart):
@@ -102,10 +139,82 @@ func (m Model) handlePlayingKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) withPresetIndex() Model {
+	m.menuIndex = m.presetIndex()
+	return m
+}
+
+func (m Model) handleHubMenuKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if key.Matches(msg, m.keys.Quit) {
+		m.quitting = true
+		return m, tea.Quit
+	}
+	switch msg.String() {
+	case "up", "k":
+		m.menuIndex = clamp(m.menuIndex-1, 0, len(hubMenuItems)-1)
+	case "down", "j":
+		m.menuIndex = clamp(m.menuIndex+1, 0, len(hubMenuItems)-1)
+	case "esc":
+		return m.popScreen(), nil
+	case "enter", " ":
+		return m.activateHubItem(hubMenuItems[m.menuIndex].action)
+	}
+	return m, nil
+}
+
+func (m Model) activateHubItem(action hubAction) (Model, tea.Cmd) {
+	switch action {
+	case hubResume:
+		return m.popScreen(), nil
+	case hubNewGame:
+		return m.startNewGame(m.difficulty, game.RandomSeed())
+	case hubDaily:
+		return m.startDailyGame()
+	case hubDifficulty:
+		return m.pushScreen(ScreenDifficultyMenu).withPresetIndex(), nil
+	case hubStatistics:
+		return m.pushScreen(ScreenStats), nil
+	case hubSettings:
+		return m.pushScreen(ScreenSettings), nil
+	case hubHelp:
+		return m.pushScreen(ScreenHelp), nil
+	case hubReplays:
+		return m.pushScreen(ScreenReplays), nil
+	case hubQuit:
+		_ = storage.SaveConfig(m.config)
+		m.quitting = true
+		return m, tea.Quit
+	}
+	return m, nil
+}
+
+func (m Model) startDailyGame() (Model, tea.Cmd) {
+	seed := game.DailySeed(timeNow())
+	return m.startNewGame(m.difficulty, seed)
+}
+
+func (m Model) handleSettingsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if key.Matches(msg, m.keys.Quit) {
+		return m.popScreen(), nil
+	}
+	switch msg.String() {
+	case "up", "k":
+		m.menuIndex = clamp(m.menuIndex-1, 0, len(settingDefs)-1)
+	case "down", "j":
+		m.menuIndex = clamp(m.menuIndex+1, 0, len(settingDefs)-1)
+	case "esc":
+		_ = storage.SaveConfig(m.config)
+		return m.popScreen(), nil
+	case "enter", " ":
+		m = m.cycleSetting(settingDefs[m.menuIndex].kind)
+		_ = storage.SaveConfig(m.config)
+	}
+	return m, nil
+}
+
 func (m Model) handleDifficultyMenuKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if key.Matches(msg, m.keys.Quit) {
-		m.screen = ScreenPlaying
-		return m, nil
+		return m.popScreen(), nil
 	}
 	switch msg.String() {
 	case "up", "k":
@@ -116,10 +225,9 @@ func (m Model) handleDifficultyMenuKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		preset := menuPresets[m.menuIndex]
 		m.config.LastPreset = preset.String()
 		_ = storage.SaveConfig(m.config)
-		m.screen = ScreenPlaying
 		return m.startNewGame(game.PresetDifficulty(preset), game.RandomSeed())
 	case "esc":
-		m.screen = ScreenPlaying
+		return m.popScreen(), nil
 	}
 	return m, nil
 }
@@ -175,7 +283,13 @@ func (m Model) startNewGame(d game.Difficulty, seed game.Seed) (Model, tea.Cmd) 
 	m.timerActive = false
 	m.timerStart = time.Time{}
 	m.screen = ScreenPlaying
+	m.returnScreen = ScreenPlaying
 	m.errMsg = ""
+	m.moveLog = nil
+	m.watchBoard = nil
+	m.watchReplay = nil
+	m.watchPlaying = false
+	m.watchPaused = false
 	m.vp = fit(viewport{}, m.width, m.height, d.Width, d.Height)
 	m.vp = m.vp.follow(m.cursor, d.Width, d.Height)
 	return m, nil
@@ -198,22 +312,23 @@ func (m Model) stopTimer() Model {
 }
 
 func (m Model) applyReveal(c game.Coord) (Model, tea.Cmd) {
+	m = m.recordMove(game.MoveReveal, c)
 	wasReady := m.board.ElapsedReady()
 	return m.afterAction(m.board.Reveal(c), wasReady)
 }
 
 func (m Model) applyFlag(c game.Coord) (Model, tea.Cmd) {
+	m = m.recordMove(game.MoveMark, c)
 	m.board.CycleMark(c, m.config.QuestionMarks)
 	return m, nil
 }
 
 func (m Model) applyChord(c game.Coord) (Model, tea.Cmd) {
+	m = m.recordMove(game.MoveChord, c)
 	wasReady := m.board.ElapsedReady()
 	return m.afterAction(m.board.Chord(c), wasReady)
 }
 
-// afterAction folds a board result into UI state: it starts the clock on the
-// opening move and switches screens when the game ends.
 func (m Model) afterAction(res game.ActionResult, wasReady bool) (Model, tea.Cmd) {
 	if !res.Ok {
 		return m, nil
@@ -230,11 +345,13 @@ func (m Model) afterAction(res game.ActionResult, wasReady bool) (Model, tea.Cmd
 	switch res.Status {
 	case game.StatusLost:
 		m = m.stopTimer()
+		m.saveReplay(false)
 		m.stats.RecordLoss(m.difficulty.Key())
 		_ = storage.SaveStats(m.stats)
 		m.screen = ScreenGameOver
 	case game.StatusWon:
 		m = m.stopTimer()
+		m.saveReplay(true)
 		if m.highscores.TryUpdate(m.difficulty.Key(), m.elapsed, m.difficulty) {
 			_ = storage.SaveHighScores(m.highscores)
 		}

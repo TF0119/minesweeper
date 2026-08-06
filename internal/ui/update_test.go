@@ -113,3 +113,49 @@ func TestRightClickPressAndReleaseFlagsOnce(t *testing.T) {
 		t.Errorf("after release: state = %v, want flagged", got)
 	}
 }
+
+func TestStartupGoesStraightToPlaying(t *testing.T) {
+	m := testModel()
+	if m.screen != ScreenPlaying {
+		t.Errorf("screen = %v, want ScreenPlaying on launch", m.screen)
+	}
+}
+
+func TestMenuOpensFromPlayAndResumes(t *testing.T) {
+	m := testModel()
+	m = m.openMenu()
+	if m.screen != ScreenMenu {
+		t.Fatalf("screen = %v, want ScreenMenu", m.screen)
+	}
+	m = m.popScreen()
+	if m.screen != ScreenPlaying {
+		t.Errorf("screen = %v, want ScreenPlaying after resume", m.screen)
+	}
+}
+
+func TestSettingsCycleUpdatesTheme(t *testing.T) {
+	m := testModel()
+	m = m.pushScreen(ScreenSettings)
+	before := m.config.Theme
+	m = m.cycleSetting(settingTheme)
+	if m.config.Theme == before {
+		t.Error("theme should have cycled")
+	}
+}
+
+func TestHubDailyStartsTodaysSeed(t *testing.T) {
+	m := testModel()
+	m, _ = m.activateHubItem(hubDaily)
+	if !m.isDailyBoard() {
+		t.Errorf("seed = %v, want today's daily %v", m.board.Seed(), m.dailySeed)
+	}
+}
+
+func TestMenuOpensWithMKey(t *testing.T) {
+	m := testModel()
+	next, _ := m.handlePlayingKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'m'}})
+	m = next.(Model)
+	if m.screen != ScreenMenu {
+		t.Errorf("screen = %v, want ScreenMenu", m.screen)
+	}
+}

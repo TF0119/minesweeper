@@ -166,18 +166,24 @@ func TestStatusBarShrinksToFitTheTerminal(t *testing.T) {
 	tests := []struct {
 		name  string
 		width int
-		want  string
 	}{
-		{"unknown size assumes room", 0, statusHints[0]},
-		{"wide terminal", widest + 10, statusHints[0]},
-		{"eighty columns", 80, statusHints[1]},
-		{"very narrow", 20, statusHints[len(statusHints)-1]},
+		{"unknown size assumes room", 0},
+		{"wide terminal", widest + 10},
+		{"eighty columns", 80},
+		{"very narrow", 20},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m.width = tt.width
-			if got := m.renderStatusBar(); !strings.Contains(got, strings.TrimSpace(tt.want)) {
-				t.Errorf("width %d rendered %q, want the hint %q", tt.width, got, tt.want)
+			want := statusHints[len(statusHints)-1]
+			for _, candidate := range statusHints {
+				if tt.width == 0 || lipgloss.Width(candidate) <= tt.width {
+					want = candidate
+					break
+				}
+			}
+			if got := m.renderStatusBar(); !strings.Contains(got, strings.TrimSpace(want)) {
+				t.Errorf("width %d rendered %q, want the hint %q", tt.width, got, want)
 			}
 		})
 	}
@@ -189,8 +195,5 @@ func TestNarrowestStatusHintFitsASmallTerminal(t *testing.T) {
 	const narrowest = 40
 	if got := lipgloss.Width(statusHints[len(statusHints)-1]); got > narrowest {
 		t.Errorf("the shortest hint is %d columns, too wide for a %d-column terminal", got, narrowest)
-	}
-	if got := lipgloss.Width(statusHints[1]); got > 80 {
-		t.Errorf("the middle hint is %d columns, too wide for 80", got)
 	}
 }

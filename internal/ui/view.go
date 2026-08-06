@@ -24,9 +24,13 @@ type Screen int
 
 const (
 	ScreenPlaying Screen = iota
+	ScreenMenu
 	ScreenDifficultyMenu
+	ScreenSettings
 	ScreenStats
 	ScreenHelp
+	ScreenReplays
+	ScreenReplayWatch
 	ScreenGameOver
 	ScreenWin
 )
@@ -47,12 +51,20 @@ func (m Model) View() string {
 	}
 
 	switch m.screen {
+	case ScreenMenu:
+		parts = append(parts, m.renderHubMenu())
 	case ScreenDifficultyMenu:
 		parts = append(parts, m.renderDifficultyMenu())
+	case ScreenSettings:
+		parts = append(parts, m.renderSettings())
 	case ScreenStats:
 		parts = append(parts, m.renderStats())
 	case ScreenHelp:
 		parts = append(parts, m.renderHelp())
+	case ScreenReplays:
+		parts = append(parts, m.renderReplays())
+	case ScreenReplayWatch:
+		parts = append(parts, m.renderReplayWatch())
 	case ScreenGameOver:
 		parts = append(parts, m.renderGameOver())
 	case ScreenWin:
@@ -64,7 +76,7 @@ func (m Model) View() string {
 }
 
 func (m Model) renderCell(c game.Coord) string {
-	view := m.board.CellView(c)
+	view := m.activeBoard().CellView(c)
 	isCursor := c == m.cursor && m.screen == ScreenPlaying
 
 	var content string
@@ -189,9 +201,9 @@ func (m Model) renderScrollIndicator() string {
 // every key stopped fitting an 80-column terminal, and a wrapped status bar
 // pushes the board off screen.
 var statusHints = []string{
-	" arrows/hjkl move · space reveal · f mark · c chord · n new · r restart · d difficulty · s stats · ? help · q quit ",
-	" move · space reveal · f mark · c chord · n new · s stats · ? help · q quit ",
-	" ? help · q quit ",
+	" arrows/hjkl move · space reveal · f mark · c chord · m menu · n new · q quit ",
+	" move · space reveal · f mark · m menu · n new · q quit ",
+	" m menu · q quit ",
 }
 
 // renderStatusBar shows the most detailed hint line that fits.
