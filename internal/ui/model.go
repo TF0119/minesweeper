@@ -49,6 +49,11 @@ type Model struct {
 	watchPlaying  bool
 	watchPaused   bool
 	watchInterval time.Duration
+
+	// A timelapse borrows the viewport and cursor for a board that may be a
+	// different size, so the live game's pair is parked here until it ends.
+	playVp     viewport
+	playCursor game.Coord
 }
 
 type tickMsg struct{}

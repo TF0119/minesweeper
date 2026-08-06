@@ -24,8 +24,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.vp = fit(m.vp, m.width, m.height, m.board.Width(), m.board.Height())
-		m.vp = m.vp.follow(m.cursor, m.board.Width(), m.board.Height())
+		b := m.activeBoard()
+		m.vp = fit(m.vp, m.width, m.height, b.Width(), b.Height())
+		m.vp = m.vp.follow(m.cursor, b.Width(), b.Height())
 		return m, nil
 	case tickMsg:
 		if m.timerActive && m.board.Status() == game.StatusPlaying {
@@ -89,6 +90,12 @@ func (m Model) clearScreenStack() Model {
 }
 
 func (m Model) openMenu() Model {
+	// Shortcut-opened overlays (s, ?) sit directly on play. Drop them so
+	// Resume returns to the board instead of the overlay under the menu.
+	if (m.screen == ScreenStats || m.screen == ScreenHelp) &&
+		len(m.screenStack) == 1 && m.screenStack[0] == ScreenPlaying {
+		m = m.popScreen()
+	}
 	m = m.pushScreen(ScreenMenu)
 	m.menuIndex = 0
 	return m
@@ -101,8 +108,11 @@ func (m Model) handleOverlayKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Restart):
 		return m.startNewGame(m.difficulty, m.board.Seed())
 	case key.Matches(msg, m.keys.Quit):
-		m.quitting = true
-		return m, tea.Quit
+		if m.screen == ScreenGameOver || m.screen == ScreenWin {
+			m.quitting = true
+			return m, tea.Quit
+		}
+		return m.popScreen(), nil
 	case m.screen == ScreenGameOver || m.screen == ScreenWin:
 		if key.Matches(msg, m.keys.Menu) {
 			return m.openMenu(), nil
@@ -306,6 +316,8 @@ func (m Model) startNewGame(d game.Difficulty, seed game.Seed) (Model, tea.Cmd) 
 	m.watchPaused = false
 	m.vp = fit(viewport{}, m.width, m.height, d.Width, d.Height)
 	m.vp = m.vp.follow(m.cursor, d.Width, d.Height)
+	m.playVp = m.vp
+	m.playCursor = m.cursor
 	return m, nil
 }
 
@@ -325,22 +337,34 @@ func (m Model) stopTimer() Model {
 	return m
 }
 
+// Only moves that changed something are recorded: a replay of no-ops would
+// spend timelapse frames showing nothing happen.
 func (m Model) applyReveal(c game.Coord) (Model, tea.Cmd) {
-	m = m.recordMove(game.MoveReveal, c)
 	wasReady := m.board.ElapsedReady()
-	return m.afterAction(m.board.Reveal(c), wasReady)
+	res := m.board.Reveal(c)
+	if res.Ok {
+		m = m.recordMove(game.Move{Kind: game.MoveReveal, Coord: c})
+	}
+	return m.afterAction(res, wasReady)
 }
 
 func (m Model) applyFlag(c game.Coord) (Model, tea.Cmd) {
-	m = m.recordMove(game.MoveMark, c)
-	m.board.CycleMark(c, m.config.QuestionMarks)
+	res := m.board.CycleMark(c, m.config.QuestionMarks)
+	if !res.Ok {
+		return m, nil
+	}
+	mark := m.board.MarkAt(c)
+	m = m.recordMove(game.Move{Kind: game.MoveMark, Coord: c, TargetMark: &mark})
 	return m, nil
 }
 
 func (m Model) applyChord(c game.Coord) (Model, tea.Cmd) {
-	m = m.recordMove(game.MoveChord, c)
 	wasReady := m.board.ElapsedReady()
-	return m.afterAction(m.board.Chord(c), wasReady)
+	res := m.board.Chord(c)
+	if res.Ok {
+		m = m.recordMove(game.Move{Kind: game.MoveChord, Coord: c})
+	}
+	return m.afterAction(res, wasReady)
 }
 
 func (m Model) afterAction(res game.ActionResult, wasReady bool) (Model, tea.Cmd) {

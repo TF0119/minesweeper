@@ -84,10 +84,11 @@ func TestReplayWatchEscAfterFinished(t *testing.T) {
 	}
 }
 
-func TestNestedOverlayThroughMenu(t *testing.T) {
+func TestMenuStatsWatchReturnsToMenu(t *testing.T) {
 	m := testModel()
-	m = m.pushScreen(ScreenStats)
 	m = m.openMenu()
+	m, _ = m.activateHubItem(hubStatistics)
+	m = m.popScreen() // esc from stats back to menu
 	m, _ = m.activateHubItem(hubReplays)
 	m.replays = []game.Replay{sampleReplay()}
 	m, _ = m.startReplayWatch(m.replays[0])
@@ -96,15 +97,14 @@ func TestNestedOverlayThroughMenu(t *testing.T) {
 	m = next.(Model)
 	next, _ = m.handleReplaysKey(tea.KeyMsg{Type: tea.KeyEsc})
 	m = next.(Model)
-	next, _ = m.handleHubMenuKey(tea.KeyMsg{Type: tea.KeyEsc})
-	m = next.(Model)
-	if m.screen != ScreenStats {
-		t.Fatalf("after watch via menu from stats: screen = %v, want ScreenStats", m.screen)
+	if m.screen != ScreenMenu {
+		t.Fatalf("after watch from menu: screen = %v, want ScreenMenu", m.screen)
 	}
 
-	m = m.popScreen()
+	next, _ = m.handleHubMenuKey(tea.KeyMsg{Type: tea.KeyEsc})
+	m = next.(Model)
 	if m.screen != ScreenPlaying {
-		t.Fatalf("after stats esc: screen = %v, want ScreenPlaying", m.screen)
+		t.Fatalf("after closing menu: screen = %v, want ScreenPlaying", m.screen)
 	}
 }
 
@@ -154,5 +154,43 @@ func TestNewGameClearsScreenStack(t *testing.T) {
 	}
 	if len(m.screenStack) != 0 {
 		t.Fatalf("screenStack = %v, want empty after new game", m.screenStack)
+	}
+}
+
+func TestStatsOverlayQReturnsToPlay(t *testing.T) {
+	m := testModel()
+	m = m.pushScreen(ScreenStats)
+	next, _ := m.handleOverlayKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	m = next.(Model)
+	if m.quitting {
+		t.Fatal("q on stats should return to play, not quit")
+	}
+	if m.screen != ScreenPlaying {
+		t.Fatalf("screen = %v, want ScreenPlaying", m.screen)
+	}
+}
+
+func TestStatsMenuResumeReturnsToPlay(t *testing.T) {
+	m := testModel()
+	m = m.pushScreen(ScreenStats)
+	next, _ := m.handleOverlayKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'m'}})
+	m = next.(Model)
+	if m.screen != ScreenMenu {
+		t.Fatalf("screen = %v, want ScreenMenu", m.screen)
+	}
+	next, _ = m.handleHubMenuKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{' '}})
+	m = next.(Model)
+	if m.screen != ScreenPlaying {
+		t.Fatalf("resume after stats→menu: screen = %v, want ScreenPlaying", m.screen)
+	}
+}
+
+func TestGameOverQStillQuits(t *testing.T) {
+	m := testModel()
+	m.screen = ScreenGameOver
+	next, cmd := m.handleOverlayKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	m = next.(Model)
+	if !m.quitting || cmd == nil {
+		t.Fatal("q on game over should quit")
 	}
 }

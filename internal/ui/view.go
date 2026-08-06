@@ -145,30 +145,44 @@ func (m Model) renderBoard() string {
 }
 
 func (m Model) renderHUD() string {
+	board := m.activeBoard()
+	elapsed := m.elapsed
+	difficulty := m.difficulty
+	seed := m.board.Seed()
+	if m.screen == ScreenReplayWatch && m.watchReplay != nil {
+		elapsed = m.watchReplay.Seconds
+		difficulty = m.watchReplay.Difficulty
+		seed = m.watchReplay.Seed
+	}
+
 	best := "---"
-	if b := m.highscores.Best(m.difficulty.Key()); b >= 0 {
+	if b := m.highscores.Best(difficulty.Key()); b >= 0 {
 		best = fmt.Sprintf("%03d", b)
 	}
 	line := fmt.Sprintf(
 		" Mines:%03d  Time:%03d  Best:%s  [%s]  %s%s ",
-		m.board.RemainingMines(), m.elapsed, best,
-		m.difficultyLabel(), m.seedLabel(), m.noGuessLabel(),
+		board.RemainingMines(), elapsed, best,
+		m.difficultyLabelFor(difficulty), m.seedLabelFor(seed), m.noGuessLabel(),
 	)
 	return m.styles.HUD.Render(line)
 }
 
-func (m Model) difficultyLabel() string {
-	if m.difficulty.Preset == game.Custom {
-		return fmt.Sprintf("custom %dx%d", m.difficulty.Width, m.difficulty.Height)
+func (m Model) difficultyLabelFor(d game.Difficulty) string {
+	if d.Preset == game.Custom {
+		return fmt.Sprintf("custom %dx%d", d.Width, d.Height)
 	}
-	return m.difficulty.Preset.String()
+	return d.Preset.String()
+}
+
+func (m Model) seedLabelFor(seed game.Seed) string {
+	if seed == m.dailySeed {
+		return "daily " + game.DailyDate(timeNow())
+	}
+	return "seed " + seed.String()
 }
 
 func (m Model) seedLabel() string {
-	if m.isDailyBoard() {
-		return "daily " + game.DailyDate(timeNow())
-	}
-	return "seed " + m.board.Seed().String()
+	return m.seedLabelFor(m.board.Seed())
 }
 
 // noGuessLabel reports on the no-guess promise. The search can come up empty,
@@ -186,7 +200,8 @@ func (m Model) noGuessLabel() string {
 
 // renderScrollIndicator shows which slice of a clipped board is on screen.
 func (m Model) renderScrollIndicator() string {
-	w, h := m.board.Width(), m.board.Height()
+	b := m.activeBoard()
+	w, h := b.Width(), b.Height()
 	if !m.vp.scrolls(w, h) {
 		return ""
 	}

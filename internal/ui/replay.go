@@ -18,11 +18,11 @@ func (m Model) activeBoard() *game.Board {
 	return m.board
 }
 
-func (m Model) recordMove(kind game.MoveKind, c game.Coord) Model {
+func (m Model) recordMove(move game.Move) Model {
 	if m.screen != ScreenPlaying {
 		return m
 	}
-	m.moveLog = append(m.moveLog, game.Move{Kind: kind, Coord: c})
+	m.moveLog = append(m.moveLog, move)
 	return m
 }
 
@@ -72,6 +72,10 @@ func (m Model) renderReplays() string {
 }
 
 func (m Model) startReplayWatch(r game.Replay) (Model, tea.Cmd) {
+	if m.screen != ScreenReplayWatch {
+		m.playVp = m.vp
+		m.playCursor = m.cursor
+	}
 	copy := r
 	m.watchReplay = &copy
 	m.watchStep = 0
@@ -148,24 +152,31 @@ func (m Model) renderReplayWatch() string {
 	return m.renderOverlay("Timelapse", body)
 }
 
-func (m Model) fasterReplay() Model {
+func (m Model) fasterReplay() (Model, tea.Cmd) {
 	if m.watchInterval > minReplayInterval {
 		m.watchInterval -= 75 * time.Millisecond
 	}
 	if m.watchInterval < minReplayInterval {
 		m.watchInterval = minReplayInterval
 	}
-	return m
+	return m.scheduleReplayTickIfPlaying()
 }
 
-func (m Model) slowerReplay() Model {
+func (m Model) slowerReplay() (Model, tea.Cmd) {
 	if m.watchInterval < maxReplayInterval {
 		m.watchInterval += 75 * time.Millisecond
 	}
 	if m.watchInterval > maxReplayInterval {
 		m.watchInterval = maxReplayInterval
 	}
-	return m
+	return m.scheduleReplayTickIfPlaying()
+}
+
+func (m Model) scheduleReplayTickIfPlaying() (Model, tea.Cmd) {
+	if m.screen == ScreenReplayWatch && m.watchPlaying && !m.watchPaused && !m.replayFinished() {
+		return m, replayTickCmd(m.watchInterval)
+	}
+	return m, nil
 }
 
 func (m Model) toggleReplayPause() (Model, tea.Cmd) {
@@ -181,11 +192,21 @@ func (m Model) toggleReplayPause() (Model, tea.Cmd) {
 	return m, replayTickCmd(m.watchInterval)
 }
 
+// stopReplayWatch ends playback and hands the viewport and cursor back to the
+// live board, which may be a different size than the replay just watched.
 func (m Model) stopReplayWatch() Model {
 	m.watchBoard = nil
 	m.watchReplay = nil
 	m.watchPlaying = false
 	m.watchPaused = false
+
+	w, h := m.board.Width(), m.board.Height()
+	m.cursor = game.Coord{
+		X: clamp(m.playCursor.X, 0, w-1),
+		Y: clamp(m.playCursor.Y, 0, h-1),
+	}
+	m.vp = fit(m.playVp, m.width, m.height, w, h)
+	m.vp = m.vp.follow(m.cursor, w, h)
 	return m
 }
 
@@ -231,9 +252,9 @@ func (m Model) handleReplayWatchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m.toggleReplayPause()
 	case "+", "=":
-		return m.fasterReplay(), nil
+		return m.fasterReplay()
 	case "-", "_":
-		return m.slowerReplay(), nil
+		return m.slowerReplay()
 	case "r":
 		m = m.resetReplayWatch()
 		return m, replayTickCmd(m.watchInterval)

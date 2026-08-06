@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -55,13 +57,29 @@ func TestReplaySpeedAdjustsInterval(t *testing.T) {
 	m := testModel()
 	m.watchInterval = defaultReplayInterval
 	before := m.watchInterval
-	m = m.fasterReplay()
+	m, _ = m.fasterReplay()
 	if m.watchInterval >= before {
 		t.Errorf("faster: interval %v did not decrease from %v", m.watchInterval, before)
 	}
-	m = m.slowerReplay()
+	m, _ = m.slowerReplay()
 	if m.watchInterval <= before-75*time.Millisecond {
 		t.Error("slower should increase interval again")
+	}
+}
+
+func TestReplaySpeedReschedulesTickWhilePlaying(t *testing.T) {
+	r := game.Replay{
+		Seed:       game.Seed(1),
+		Difficulty: game.PresetDifficulty(game.Beginner),
+		Moves: []game.Move{
+			{Kind: game.MoveReveal, Coord: game.Coord{X: 4, Y: 4}},
+			{Kind: game.MoveReveal, Coord: game.Coord{X: 3, Y: 4}},
+		},
+	}
+	m, _ := testModel().startReplayWatch(r)
+	_, cmd := m.fasterReplay()
+	if cmd == nil {
+		t.Error("expected tick reschedule after speed change during playback")
 	}
 }
 
@@ -80,5 +98,33 @@ func TestReplayFinishedStopsPlayback(t *testing.T) {
 	m = next
 	if cmd != nil || m.watchPlaying {
 		t.Error("finished timelapse should stop scheduling ticks")
+	}
+}
+
+func TestReplayWatchHUDUsesReplayBoard(t *testing.T) {
+	r := game.Replay{
+		Seed:       game.Seed(99),
+		Difficulty: game.PresetDifficulty(game.Beginner),
+		Moves:      []game.Move{{Kind: game.MoveReveal, Coord: game.Coord{X: 4, Y: 4}}},
+		Seconds:    17,
+	}
+	m, _ := testModel().startReplayWatch(r)
+	flag := game.MarkFlag
+	m.watchReplay.Moves = append(m.watchReplay.Moves, game.Move{
+		Kind: game.MoveMark, Coord: game.Coord{X: 1, Y: 1}, TargetMark: &flag,
+	})
+	m.watchReplay.Apply(m.watchBoard, 2)
+
+	hud := m.renderHUD()
+	if !strings.Contains(hud, "seed 99") {
+		t.Errorf("HUD should show replay seed, got %q", hud)
+	}
+	if !strings.Contains(hud, "017") {
+		t.Errorf("HUD should show replay time, got %q", hud)
+	}
+	liveMines := m.board.RemainingMines()
+	watchMines := m.watchBoard.RemainingMines()
+	if liveMines != watchMines && strings.Contains(hud, fmt.Sprintf("%03d", liveMines)) {
+		t.Errorf("HUD mine count should follow watch board (%d), not live board (%d)", watchMines, liveMines)
 	}
 }
