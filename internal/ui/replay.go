@@ -33,6 +33,7 @@ func (m Model) saveReplay(won bool) {
 	_ = storage.SaveReplay(game.Replay{
 		Seed:       m.board.Seed(),
 		Difficulty: m.difficulty,
+		NoGuess:    m.boardNoGuess,
 		Moves:      append([]game.Move(nil), m.moveLog...),
 		Won:        won,
 		Seconds:    m.elapsed,
@@ -64,8 +65,9 @@ func (m Model) renderReplays() string {
 		if r.Won {
 			result = "won"
 		}
-		lines = append(lines, fmt.Sprintf("%s%s  %s  %ds  %d moves",
-			prefix, r.Seed, result, r.Seconds, len(r.Moves)))
+		date := r.PlayedAt.UTC().Format("2006-01-02")
+		lines = append(lines, fmt.Sprintf("%s%s  %s  %ds  %d moves  %s",
+			prefix, m.difficultyLabelFor(r.Difficulty), result, r.Seconds, len(r.Moves), date))
 	}
 	lines = append(lines, "", "enter timelapse · esc back")
 	return m.renderOverlay("Watch", strings.Join(lines, "\n"))
@@ -79,7 +81,7 @@ func (m Model) startReplayWatch(r game.Replay) (Model, tea.Cmd) {
 	copy := r
 	m.watchReplay = &copy
 	m.watchStep = 0
-	m.watchBoard = newBoard(r.Difficulty, r.Seed, false)
+	m.watchBoard = newBoard(r.Difficulty, r.Seed, r.NoGuess)
 	m.watchPlaying = true
 	m.watchPaused = false
 	m.watchInterval = defaultReplayInterval
@@ -94,7 +96,7 @@ func (m Model) resetReplayWatch() Model {
 		return m
 	}
 	m.watchStep = 0
-	m.watchBoard = newBoard(m.watchReplay.Difficulty, m.watchReplay.Seed, false)
+	m.watchBoard = newBoard(m.watchReplay.Difficulty, m.watchReplay.Seed, m.watchReplay.NoGuess)
 	m.watchPlaying = true
 	m.watchPaused = false
 	return m

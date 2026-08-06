@@ -39,7 +39,7 @@ type Model struct {
 	glyphs glyphs
 	keys   KeyMap
 
-	errMsg       string
+	notice       string
 	menuIndex    int
 	quitting     bool
 	lastMouseBtn tea.MouseButton
@@ -103,6 +103,7 @@ func (m Model) restoreSession(s storage.Session) Model {
 	b := newBoard(s.Difficulty, s.Seed, s.NoGuess)
 	game.Replay{Seed: s.Seed, Difficulty: s.Difficulty, Moves: s.Moves}.Apply(b, len(s.Moves))
 	if b.Status() != game.StatusPlaying {
+		_ = storage.ClearSession()
 		return m
 	}
 
@@ -124,6 +125,7 @@ func (m Model) restoreSession(s storage.Session) Model {
 		m.timerActive = true
 		m.timerStart = timeNow().Add(-time.Duration(m.elapsed) * time.Second)
 	}
+	m.notice = "resumed"
 	return m
 }
 

@@ -21,11 +21,14 @@ type Move struct {
 }
 
 // Replay is a finished game that can be watched again. The seed pins the mine
-// layout; the moves pin what the player did.
+// layout; the moves pin what the player did. NoGuess records which generator
+// built the board: classic and no-guess draw differently from the same seed.
+// Older JSON omits the field and loads as classic.
 type Replay struct {
 	ID         string     `json:"id"`
 	Seed       Seed       `json:"seed"`
 	Difficulty Difficulty `json:"difficulty"`
+	NoGuess    bool       `json:"no_guess"`
 	Moves      []Move     `json:"moves"`
 	Won        bool       `json:"won"`
 	Seconds    int        `json:"seconds"`

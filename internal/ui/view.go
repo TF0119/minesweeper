@@ -46,8 +46,8 @@ func (m Model) View() string {
 	if s := m.renderScrollIndicator(); s != "" {
 		parts = append(parts, s)
 	}
-	if m.errMsg != "" {
-		parts = append(parts, m.styles.Warning.Render(m.errMsg))
+	if m.notice != "" {
+		parts = append(parts, m.styles.Warning.Render(m.notice))
 	}
 
 	switch m.screen {
@@ -185,14 +185,19 @@ func (m Model) seedLabel() string {
 	return m.seedLabelFor(m.board.Seed())
 }
 
-// noGuessLabel reports on the no-guess promise. The search can come up empty,
-// and saying so is better than letting the player trust a guarantee that does
-// not hold for this board.
+// noGuessLabel reports on the no-guess promise for the board on screen. The
+// config setting only applies to the next board, so the label follows
+// boardNoGuess (or the replay's flag while watching).
 func (m Model) noGuessLabel() string {
-	if !m.config.NoGuess {
+	promised := m.boardNoGuess
+	if m.screen == ScreenReplayWatch && m.watchReplay != nil {
+		promised = m.watchReplay.NoGuess
+	}
+	if !promised {
 		return ""
 	}
-	if m.board.ElapsedReady() && !m.board.NoGuess() {
+	board := m.activeBoard()
+	if board.ElapsedReady() && !board.NoGuess() {
 		return "  guess needed"
 	}
 	return "  no-guess"
@@ -212,19 +217,55 @@ func (m Model) renderScrollIndicator() string {
 	))
 }
 
-// statusHints are the status bar texts from most to least detailed. Listing
-// every key stopped fitting an 80-column terminal, and a wrapped status bar
-// pushes the board off screen.
-var statusHints = []string{
-	" arrows/hjkl move · space reveal · f mark · c chord · m menu · n new · q quit ",
-	" move · space reveal · f mark · m menu · n new · q quit ",
-	" m menu · q quit ",
+// statusHintsFor returns hint lines for the current screen, from most to least
+// detailed. A wrapped status bar pushes the board off screen, so render picks
+// the longest that fits.
+func (m Model) statusHintsFor() []string {
+	switch m.screen {
+	case ScreenMenu:
+		return []string{
+			" enter select · esc back · q quit ",
+			" enter · esc · q ",
+		}
+	case ScreenDifficultyMenu, ScreenSettings:
+		return []string{
+			" enter select · esc back ",
+			" enter · esc ",
+		}
+	case ScreenStats, ScreenHelp:
+		return []string{
+			" esc back · q close ",
+			" esc · q ",
+		}
+	case ScreenReplays:
+		return []string{
+			" enter timelapse · esc back ",
+			" enter · esc ",
+		}
+	case ScreenReplayWatch:
+		return []string{
+			" space pause · +/- speed · r restart · esc back ",
+			" space · +/- · esc ",
+		}
+	case ScreenGameOver, ScreenWin:
+		return []string{
+			" n new · r restart · m menu · q quit ",
+			" n · r · m · q ",
+		}
+	default:
+		return []string{
+			" arrows/hjkl move · space reveal · f mark · c chord · m menu · n new · q quit ",
+			" move · space reveal · f mark · m menu · n new · q quit ",
+			" m menu · q quit ",
+		}
+	}
 }
 
 // renderStatusBar shows the most detailed hint line that fits.
 func (m Model) renderStatusBar() string {
-	hint := statusHints[len(statusHints)-1]
-	for _, candidate := range statusHints {
+	hints := m.statusHintsFor()
+	hint := hints[len(hints)-1]
+	for _, candidate := range hints {
 		// A zero width means the terminal size is not known yet; assume room.
 		if m.width == 0 || lipgloss.Width(candidate) <= m.width {
 			hint = candidate
@@ -319,5 +360,5 @@ func (m Model) renderWin() string {
 }
 
 func (m Model) retryHint() string {
-	return fmt.Sprintf("n: new board · r: replay seed %s · q: quit", m.board.Seed())
+	return fmt.Sprintf("n: new board · r: restart seed %s · m: menu · q: quit", m.board.Seed())
 }

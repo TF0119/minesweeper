@@ -142,10 +142,13 @@ timelapse without trapping the player on the hub.
 **Watch** replays a recorded game move by move. The two must stay separate in
 labelling and docs or players will expect the wrong thing.
 
-Recordings live in `internal/game` as `Replay` (seed + moves). The UI appends
-moves during play and `storage` persists them on disk. Playback rebuilds a board
-from the seed and applies moves in order; timelapse is just that loop on a timer
-in the UI layer, not logic in the game package.
+Recordings live in `internal/game` as `Replay` (seed + moves + whether the
+board was generated with no-guess). Classic and no-guess draw differently from
+the same seed, so playback must use the same generator the original game did.
+Older JSON without `no_guess` loads as classic. The UI appends moves during play
+and `storage` persists them on disk. Playback rebuilds a board from the seed and
+applies moves in order; timelapse is just that loop on a timer in the UI layer,
+not logic in the game package.
 
 ## Resuming an unfinished game
 
@@ -155,14 +158,18 @@ than the board, which is the same trick recordings use: one description of what
 happened instead of two that can drift apart. It also means the restore path is
 `Replay.Apply`, already exercised by the timelapse.
 
-Two rules keep a stale game from surprising anyone. Finishing clears the file,
-so a won board never comes back. Quitting with nothing to resume also clears it,
-or starting a fresh board and closing it would resurrect the game before that.
+Three rules keep a stale game from surprising anyone. Finishing clears the file,
+so a won board never comes back. Starting a fresh board (`n`, New game, Daily,
+or a difficulty change) clears it immediately, so killing the process after
+abandoning a game cannot resurrect the previous one. Quitting with nothing to
+resume also clears it. A finished or unusable file that somehow remains is
+deleted when restore or load rejects it, rather than re-read on every launch.
 
 The clock counts time spent playing, so a resumed game continues from the saved
 figure rather than restarting or charging the player for the hours it was
-closed. Naming a board with `-seed`, `-daily`, or `-difficulty` skips the saved
-game: an explicit request should win over an implicit one.
+closed. Naming a board with `-seed`, `-daily`, or `-difficulty` (or custom size
+flags) skips the saved game: an explicit request should win over an implicit
+one. Preference flags such as `-no-guess` and `-theme` do not skip it.
 
 ## Errors defined out of existence
 

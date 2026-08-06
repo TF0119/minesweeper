@@ -90,11 +90,11 @@ Launch drops you straight into a game — there is no title screen. Press `m` or
 `Esc` during play to open the menu: new game, daily challenge, difficulty,
 statistics, settings, help, and quit are all there.
 
-Finished games are saved automatically. Menu → **Watch** lists them; pick one
-and the moves play back as a **timelapse** (about three moves per second by
-default). `Space` pauses, `+`/`-` changes speed, `r` restarts, `Enter` replays
-when finished. This is not the same as `r` during play, which restarts the same
-seed so you can try again.
+Finished games are saved automatically. Menu → **Watch** lists them by
+difficulty, result, time, move count, and date; pick one and the moves play back
+as a **timelapse** (about three moves per second by default). `Space` pauses,
+`+`/`-` changes speed, `r` restarts, `Enter` replays when finished. This is not
+the same as `r` during play, which restarts the same seed so you can try again.
 
 Settings in the menu cover theme, no-guess boards, question marks, and emoji
 glyphs — the same options as the config file and flags.
@@ -104,11 +104,13 @@ glyphs — the same options as the config file and flags.
 Quitting in the middle of a game saves it. Start `minesweeper` again with no
 arguments and the same board comes back, with your flags, your revealed cells,
 and the clock continuing from where it stopped. Finishing a game clears the
-save, so a board you already won never reappears.
+save, so a board you already won never reappears. Starting a fresh board with
+`n` also clears it.
 
-Asking for a particular board skips the saved game — `-seed`, `-daily`, and
-`-difficulty` all mean "deal this one instead". Press `n` at any time for a
-fresh board.
+Asking for a particular board skips the saved game — `-seed`, `-daily`,
+`-difficulty`, and custom size flags all mean "deal this one instead". Preference
+flags such as `-no-guess` and `-theme` do not: they update settings and the
+unfinished game still resumes. Press `n` at any time for a fresh board.
 
 ## Controls
 
@@ -125,6 +127,9 @@ fresh board.
 | `s` | Statistics |
 | `?` | Help |
 | `q` / Ctrl+C | Quit |
+
+During a timelapse (Menu → Watch): `Space` pauses, `+`/`-` changes speed,
+`r` restarts playback, `Esc` / `q` returns to the list.
 
 A `?` is only a note to yourself: it does not stop a reveal and does not count
 towards a chord. Set `"question_marks": false` in the config to make `f` a plain

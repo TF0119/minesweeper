@@ -62,8 +62,10 @@ func LoadSession() (Session, bool, error) {
 		return Session{}, false, err
 	}
 	// A game with no moves has nothing to restore, and a board that cannot be
-	// built is worse than starting fresh.
+	// built is worse than starting fresh. Leave the file gone so every launch
+	// does not keep reading a promise that will never be kept.
 	if len(s.Moves) == 0 || s.Difficulty.Validate() != nil {
+		_ = os.Remove(path)
 		return Session{}, false, nil
 	}
 	return s, true, nil
