@@ -11,10 +11,22 @@ All notable changes to this project will be documented in this file.
   cannot resurrect the previous one
 - Ignoring a finished or unusable `session.json` now deletes the file instead of
   re-reading it on every launch
+- Corrupt `session.json` is deleted after the parse error, so the next launch
+  does not warn about the same file again
 - Timelapse playback of a no-guess game rebuilds the board with the no-guess
   generator; older recordings without the flag still play as classic
 - The HUD `no-guess` / `guess needed` label follows the board on screen (including
   a watched replay), not the setting for the next board
+- Watch listing counts successfully parsed recordings toward its limit, and
+  deletes corrupt replay files so they cannot hide newer games
+
+### Added
+
+- Watch: press `x` to delete the selected recording
+- Finished games beyond the newest 20 are pruned from disk when a new one is saved
+- Statistics shows the best winning time per difficulty
+- A brief `new best` notice appears when a win sets a personal record
+- Middle-click chords, matching the classic desktop binding
 
 ### Changed
 
@@ -22,7 +34,8 @@ All notable changes to this project will be documented in this file.
 - Game over and victory say `restart seed` and mention `m: menu`; the hub shows
   `Back` when the menu was opened over an overlay rather than the board
 - Resuming a saved game shows a brief `resumed` notice until the next key
-- Watch lists difficulty, result, time, move count, and date instead of the seed
+- Watch lists difficulty, result, time, move count, date, and `no-guess` when
+  relevant, instead of the seed
 
 ## [0.5.0] - 2026-08-06
 

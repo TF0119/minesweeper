@@ -35,7 +35,7 @@ terminal.**
 |---------|----------------|
 | `internal/game` | Board state and rules. No I/O, no bubbletea, no colour. |
 | `internal/ui` | Input handling and rendering. Sees `CellView`, never mine positions. |
-| `internal/storage` | Config and high scores on disk. |
+| `internal/storage` | Config, high scores, statistics, session, and replays on disk. |
 | `cmd/minesweeper` | Flag parsing and wiring. |
 
 If a change makes `internal/game` import something from `internal/ui`, or makes

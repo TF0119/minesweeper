@@ -12,7 +12,11 @@ import (
 	"github.com/TF0119/minesweeper/internal/game"
 )
 
-const replayVersion = 1
+const (
+	replayVersion = 1
+	// MaxReplays is how many finished games stay on disk and in the Watch list.
+	MaxReplays = 20
+)
 
 type replayFile struct {
 	Version int         `json:"version"`
@@ -30,6 +34,7 @@ func ReplaysDir() (string, error) {
 
 // SaveReplay writes a finished game to disk. The ID is derived from the time
 // and seed so filenames stay unique and sortable without a central index.
+// After writing, older files beyond MaxReplays are pruned.
 func SaveReplay(r game.Replay) error {
 	dir, err := ReplaysDir()
 	if err != nil {
@@ -44,7 +49,10 @@ func SaveReplay(r game.Replay) error {
 	r.PlayedAt = r.PlayedAt.UTC()
 	payload := replayFile{Version: replayVersion, Replay: r}
 	path := filepath.Join(dir, r.ID+".json")
-	return writeJSONAtomic(path, payload)
+	if err := writeJSONAtomic(path, payload); err != nil {
+		return err
+	}
+	return PruneReplays(MaxReplays)
 }
 
 func newReplayID(r game.Replay) string {
@@ -60,7 +68,8 @@ func newReplayID(r game.Replay) string {
 		when.Format("20060102-150405"), result, r.Seed.String())
 }
 
-// ListReplays returns saved games, newest first.
+// ListReplays returns saved games, newest first. limit counts successfully
+// parsed recordings; corrupt files are deleted so they cannot steal slots.
 func ListReplays(limit int) ([]game.Replay, error) {
 	dir, err := ReplaysDir()
 	if err != nil {
@@ -82,24 +91,78 @@ func ListReplays(limit int) ([]game.Replay, error) {
 	}
 	sort.Sort(sort.Reverse(sort.StringSlice(files)))
 
-	if limit > 0 && len(files) > limit {
-		files = files[:limit]
-	}
-
 	out := make([]game.Replay, 0, len(files))
 	for _, name := range files {
-		data, err := os.ReadFile(filepath.Join(dir, name))
+		path := filepath.Join(dir, name)
+		data, err := os.ReadFile(path)
 		if err != nil {
+			_ = os.Remove(path)
 			continue
 		}
 		var rf replayFile
 		if err := json.Unmarshal(data, &rf); err != nil {
+			_ = os.Remove(path)
 			continue
 		}
 		if rf.Replay.ID == "" {
 			rf.Replay.ID = strings.TrimSuffix(name, ".json")
 		}
 		out = append(out, rf.Replay)
+		if limit > 0 && len(out) >= limit {
+			break
+		}
 	}
 	return out, nil
+}
+
+// DeleteReplay removes one saved game by ID. A missing file is not an error.
+func DeleteReplay(id string) error {
+	if id == "" || strings.Contains(id, "/") || strings.Contains(id, `\`) || strings.Contains(id, "..") {
+		return fmt.Errorf("invalid replay id")
+	}
+	dir, err := ReplaysDir()
+	if err != nil {
+		return err
+	}
+	path := filepath.Join(dir, id+".json")
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
+// PruneReplays keeps the newest keep files by name and deletes the rest.
+// keep <= 0 removes every recording.
+func PruneReplays(keep int) error {
+	dir, err := ReplaysDir()
+	if err != nil {
+		return err
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	var files []string
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".json") {
+			files = append(files, e.Name())
+		}
+	}
+	sort.Sort(sort.Reverse(sort.StringSlice(files)))
+
+	start := keep
+	if keep < 0 {
+		start = 0
+	}
+	if start > len(files) {
+		return nil
+	}
+	for _, name := range files[start:] {
+		_ = os.Remove(filepath.Join(dir, name))
+	}
+	return nil
 }

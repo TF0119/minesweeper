@@ -154,11 +154,14 @@ func TestStatsScreenShowsEveryDifficulty(t *testing.T) {
 	stats.RecordWin(game.PresetDifficulty(game.Beginner).Key(), 42)
 	stats.RecordLoss(game.PresetDifficulty(game.Expert).Key())
 
+	scores := storage.DefaultHighScores()
+	scores.TryUpdate(game.PresetDifficulty(game.Beginner).Key(), 42, game.PresetDifficulty(game.Beginner))
+
 	m := NewModel(Options{
 		Difficulty: game.PresetDifficulty(game.Beginner),
 		Seed:       game.Seed(1),
 		Config:     storage.DefaultConfig(),
-		HighScores: storage.DefaultHighScores(),
+		HighScores: scores,
 		Stats:      stats,
 	})
 
@@ -168,8 +171,11 @@ func TestStatsScreenShowsEveryDifficulty(t *testing.T) {
 			t.Errorf("statistics screen is missing %q", p)
 		}
 	}
+	if !strings.Contains(body, "best") {
+		t.Error("statistics screen should have a best column")
+	}
 	if !strings.Contains(body, "42s") {
-		t.Error("statistics screen should show the average time of the won game")
+		t.Error("statistics screen should show the average/best time of the won game")
 	}
 	// Intermediate has never been played, so it has no average to show.
 	if !strings.Contains(body, "—") {
@@ -305,18 +311,28 @@ func TestWatchListShowsDifficultyAndDate(t *testing.T) {
 	m.replays = []game.Replay{{
 		Seed:       game.Seed(7),
 		Difficulty: game.PresetDifficulty(game.Beginner),
+		NoGuess:    true,
 		Won:        true,
 		Seconds:    42,
 		Moves:      []game.Move{{Kind: game.MoveReveal}},
 		PlayedAt:   time.Date(2026, 8, 6, 12, 0, 0, 0, time.UTC),
 	}}
 	got := m.renderReplays()
-	for _, want := range []string{"beginner", "won", "42s", "2026-08-06"} {
+	for _, want := range []string{"beginner", "won", "42s", "2026-08-06", "no-guess", "x delete"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("watch list = %q, missing %q", got, want)
 		}
 	}
 	if strings.Contains(got, "seed 7") || strings.Contains(got, " 7 ") {
 		t.Errorf("watch list should not lead with the seed: %q", got)
+	}
+}
+
+func TestWatchStatusBarMentionsDelete(t *testing.T) {
+	m := testModel()
+	m.screen = ScreenReplays
+	m.width = 120
+	if got := m.renderStatusBar(); !strings.Contains(got, "x delete") {
+		t.Errorf("watch status = %q, want x delete", got)
 	}
 }

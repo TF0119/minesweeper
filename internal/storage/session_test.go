@@ -2,6 +2,7 @@ package storage
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/TF0119/minesweeper/internal/game"
@@ -115,5 +116,31 @@ func TestClearSession(t *testing.T) {
 	}
 	if _, ok, _ := LoadSession(); ok {
 		t.Error("cleared session still loads")
+	}
+}
+
+func TestLoadSessionDeletesCorruptJSON(t *testing.T) {
+	storagetest.IsolateConfigDir(t)
+
+	path, err := SessionPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("{not json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, ok, err := LoadSession()
+	if ok {
+		t.Error("corrupt session should not load")
+	}
+	if err == nil {
+		t.Error("corrupt session should report an error")
+	}
+	if _, statErr := os.Stat(path); !os.IsNotExist(statErr) {
+		t.Errorf("corrupt session file still present: %v", statErr)
 	}
 }
