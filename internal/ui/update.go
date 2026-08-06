@@ -60,9 +60,10 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m.handlePlayingKey(msg)
 }
 
-// pushScreen opens a sub-screen and remembers where to return on esc.
+// pushScreen opens a sub-screen and remembers prior screens so esc can unwind
+// nested flows such as Menu → Watch → timelapse.
 func (m Model) pushScreen(screen Screen) Model {
-	m.returnScreen = m.screen
+	m.screenStack = append(m.screenStack, m.screen)
 	m.screen = screen
 	m.menuIndex = 0
 	if screen == ScreenReplays {
@@ -73,13 +74,22 @@ func (m Model) pushScreen(screen Screen) Model {
 
 // popScreen returns to the screen that opened the current one.
 func (m Model) popScreen() Model {
-	m.screen = m.returnScreen
+	if len(m.screenStack) == 0 {
+		return m
+	}
+	last := len(m.screenStack) - 1
+	m.screen = m.screenStack[last]
+	m.screenStack = m.screenStack[:last]
+	return m
+}
+
+func (m Model) clearScreenStack() Model {
+	m.screenStack = nil
 	return m
 }
 
 func (m Model) openMenu() Model {
-	m.returnScreen = ScreenPlaying
-	m.screen = ScreenMenu
+	m = m.pushScreen(ScreenMenu)
 	m.menuIndex = 0
 	return m
 }
@@ -93,9 +103,13 @@ func (m Model) handleOverlayKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Quit):
 		m.quitting = true
 		return m, tea.Quit
-	}
-	if m.screen == ScreenGameOver || m.screen == ScreenWin {
+	case m.screen == ScreenGameOver || m.screen == ScreenWin:
+		if key.Matches(msg, m.keys.Menu) {
+			return m.openMenu(), nil
+		}
 		return m, nil
+	case msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] == 'm':
+		return m.openMenu(), nil
 	}
 	if msg.String() == "esc" {
 		return m.popScreen(), nil
@@ -283,7 +297,7 @@ func (m Model) startNewGame(d game.Difficulty, seed game.Seed) (Model, tea.Cmd) 
 	m.timerActive = false
 	m.timerStart = time.Time{}
 	m.screen = ScreenPlaying
-	m.returnScreen = ScreenPlaying
+	m = m.clearScreenStack()
 	m.errMsg = ""
 	m.moveLog = nil
 	m.watchBoard = nil

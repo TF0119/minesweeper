@@ -79,8 +79,7 @@ func (m Model) startReplayWatch(r game.Replay) (Model, tea.Cmd) {
 	m.watchPlaying = true
 	m.watchPaused = false
 	m.watchInterval = defaultReplayInterval
-	m.screen = ScreenReplayWatch
-	m.returnScreen = ScreenReplays
+	m = m.pushScreen(ScreenReplayWatch)
 	m.cursor = game.Coord{X: r.Difficulty.Width / 2, Y: r.Difficulty.Height / 2}
 	m.vp = fit(viewport{}, m.width, m.height, r.Difficulty.Width, r.Difficulty.Height)
 	return m, replayTickCmd(m.watchInterval)
@@ -214,11 +213,18 @@ func (m Model) handleReplaysKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) exitReplayWatch() (Model, tea.Cmd) {
+	m = m.stopReplayWatch()
+	return m.popScreen(), nil
+}
+
 func (m Model) handleReplayWatchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if key.Matches(msg, m.keys.Quit) {
+		return m.exitReplayWatch()
+	}
 	switch msg.String() {
 	case "esc":
-		m = m.stopReplayWatch()
-		return m.popScreen(), nil
+		return m.exitReplayWatch()
 	case " ":
 		if m.replayFinished() {
 			return m, nil

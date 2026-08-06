@@ -10,15 +10,15 @@ import (
 
 // Model is the bubbletea model.
 type Model struct {
-	board        *game.Board
-	cursor       game.Coord
-	screen       Screen
-	returnScreen Screen // where esc returns from a sub-screen
-	difficulty   game.Difficulty
-	config       storage.Config
-	highscores   storage.HighScores
-	stats        storage.Stats
-	useColor     bool
+	board       *game.Board
+	cursor      game.Coord
+	screen      Screen
+	screenStack []Screen // return targets for esc / back; see pushScreen
+	difficulty  game.Difficulty
+	config      storage.Config
+	highscores  storage.HighScores
+	stats       storage.Stats
+	useColor    bool
 
 	dailySeed game.Seed // today's challenge, for labelling the current board
 

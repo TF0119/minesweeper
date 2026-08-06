@@ -159,3 +159,20 @@ func TestMenuOpensWithMKey(t *testing.T) {
 		t.Errorf("screen = %v, want ScreenMenu", m.screen)
 	}
 }
+
+func TestMenuOpensFromGameOver(t *testing.T) {
+	m := testModel()
+	m.screen = ScreenGameOver
+	next, _ := m.handleOverlayKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'m'}})
+	m = next.(Model)
+	if m.screen != ScreenMenu {
+		t.Fatalf("screen = %v, want ScreenMenu", m.screen)
+	}
+	if len(m.screenStack) != 1 || m.screenStack[0] != ScreenGameOver {
+		t.Errorf("screenStack = %v, want [ScreenGameOver]", m.screenStack)
+	}
+	m = m.popScreen()
+	if m.screen != ScreenGameOver {
+		t.Errorf("screen = %v, want ScreenGameOver after resume", m.screen)
+	}
+}
