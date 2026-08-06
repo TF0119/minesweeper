@@ -326,6 +326,7 @@ func (m Model) startNewGame(d game.Difficulty, seed game.Seed) (Model, tea.Cmd) 
 	m.screen = ScreenPlaying
 	m = m.clearScreenStack()
 	m.notice = ""
+	m.shareCard = ""
 	m.moveLog = nil
 	m.watchBoard = nil
 	m.watchReplay = nil
@@ -449,6 +450,7 @@ func (m Model) afterAction(res game.ActionResult, wasReady bool) (Model, tea.Cmd
 		}
 		m.stats.RecordWin(m.difficulty.Key(), m.elapsed)
 		_ = storage.SaveStats(m.stats)
+		m.shareCard = m.buildShareCard()
 		m.screen = ScreenWin
 	}
 	return m, cmd

@@ -33,8 +33,18 @@ func Run(opts Options) error {
 
 	m := NewModel(opts)
 	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseAllMotion())
-	_, err := p.Run()
-	return err
+	final, err := p.Run()
+	if err != nil {
+		return err
+	}
+	// Alt-screen teardown wipes the victory overlay. Re-print the share card
+	// on the normal terminal so a win is one select-and-paste away from a chat.
+	if done, ok := final.(Model); ok {
+		if card := done.ShareCard(); card != "" {
+			fmt.Println(card)
+		}
+	}
+	return nil
 }
 
 // colorDisabledByEnv reports whether the environment opts out of colour.
