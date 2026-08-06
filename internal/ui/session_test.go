@@ -5,6 +5,7 @@ import (
 
 	"github.com/TF0119/minesweeper/internal/game"
 	"github.com/TF0119/minesweeper/internal/storage"
+	"github.com/TF0119/minesweeper/internal/storage/storagetest"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -17,7 +18,7 @@ type session struct {
 
 func newSession(t *testing.T) *session {
 	t.Helper()
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	storagetest.IsolateConfigDir(t)
 	s := &session{t: t, m: NewModel(Options{
 		Difficulty: game.PresetDifficulty(game.Beginner),
 		Seed:       game.Seed(1234),

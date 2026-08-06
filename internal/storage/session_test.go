@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/TF0119/minesweeper/internal/game"
+	"github.com/TF0119/minesweeper/internal/storage/storagetest"
 )
 
 func sampleSession() Session {
@@ -22,7 +23,7 @@ func sampleSession() Session {
 }
 
 func TestSaveAndLoadSessionRoundTrip(t *testing.T) {
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	storagetest.IsolateConfigDir(t)
 
 	want := sampleSession()
 	if err := SaveSession(want); err != nil {
@@ -56,7 +57,7 @@ func TestSaveAndLoadSessionRoundTrip(t *testing.T) {
 }
 
 func TestLoadSessionMissingIsNotAnError(t *testing.T) {
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	storagetest.IsolateConfigDir(t)
 
 	_, ok, err := LoadSession()
 	if err != nil {
@@ -81,7 +82,7 @@ func TestLoadSessionRejectsNothingToResume(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+			storagetest.IsolateConfigDir(t)
 			if err := SaveSession(tt.s); err != nil {
 				t.Fatal(err)
 			}
@@ -93,7 +94,7 @@ func TestLoadSessionRejectsNothingToResume(t *testing.T) {
 }
 
 func TestClearSession(t *testing.T) {
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	storagetest.IsolateConfigDir(t)
 
 	if err := ClearSession(); err != nil {
 		t.Errorf("clearing a missing session: %v", err)

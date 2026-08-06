@@ -5,11 +5,11 @@ import (
 	"time"
 
 	"github.com/TF0119/minesweeper/internal/game"
+	"github.com/TF0119/minesweeper/internal/storage/storagetest"
 )
 
 func TestSaveAndListReplay(t *testing.T) {
-	dir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", dir)
+	storagetest.IsolateConfigDir(t)
 
 	r := game.Replay{
 		Seed:       game.Seed(42),

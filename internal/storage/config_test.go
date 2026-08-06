@@ -3,14 +3,27 @@ package storage
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/TF0119/minesweeper/internal/storage/storagetest"
 )
 
+// Tests must never touch the real save files, and the check belongs next to
+// the helper that promises it.
+func TestIsolateConfigDirCoversThisPlatform(t *testing.T) {
+	dir := storagetest.IsolateConfigDir(t)
+	got, err := ConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(got, dir) {
+		t.Errorf("ConfigDir() = %q, want it under the temporary %q", got, dir)
+	}
+}
+
 func TestSaveLoadConfigRoundTrip(t *testing.T) {
-	dir := t.TempDir()
-	orig := os.Getenv("XDG_CONFIG_HOME")
-	os.Setenv("XDG_CONFIG_HOME", dir)
-	defer os.Setenv("XDG_CONFIG_HOME", orig)
+	storagetest.IsolateConfigDir(t)
 
 	cfg := DefaultConfig()
 	cfg.LastPreset = "intermediate"
