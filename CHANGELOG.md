@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Watching a replay of another difficulty left the live board drawn at the
+  replay's size with the cursor outside it, so keys stopped doing anything.
+  The viewport and cursor are now handed back when playback ends
+- Resizing the terminal during a timelapse clipped the replay board to the live
+  board's size, and the scroll indicator described the wrong board
+- The timelapse HUD showed the live board's mine count, time, and seed instead
+  of the replay's
+- `q` on the statistics and help screens quit the game instead of closing the
+  screen, unlike every other sub-screen
+- Opening the menu from statistics or help and picking Resume returned to that
+  screen instead of the board
+- Replays cycled marks as if question marks were always on, so a flag that had
+  been cleared during play came back as `?` during playback
+- `+` and `-` during a timelapse only took effect on the next frame
+- Actions that changed nothing were recorded, spending timelapse frames
+  showing nothing happen
+
 ## [0.4.1] - 2026-08-06
 
 ### Fixed
