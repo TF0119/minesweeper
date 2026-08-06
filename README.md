@@ -83,6 +83,21 @@ line says `guess needed` rather than pretending otherwise.
 Press `s` for wins, win rate, average winning time, and streaks per difficulty.
 Only finished games count, so starting a fresh board mid-game is not a loss.
 
+### Menu and timelapse
+
+Launch drops you straight into a game — there is no title screen. Press `m` or
+`Esc` during play to open the menu: new game, daily challenge, difficulty,
+statistics, settings, help, and quit are all there.
+
+Finished games are saved automatically. Menu → **Watch** lists them; pick one
+and the moves play back as a **timelapse** (about three moves per second by
+default). `Space` pauses, `+`/`-` changes speed, `r` restarts, `Enter` replays
+when finished. This is not the same as `r` during play, which restarts the same
+seed so you can try again.
+
+Settings in the menu cover theme, no-guess boards, question marks, and emoji
+glyphs — the same options as the config file and flags.
+
 ## Controls
 
 | Key | Action |
@@ -91,8 +106,9 @@ Only finished games count, so starting a fresh board mid-game is not a loss.
 | Space / Enter | Reveal |
 | `f` | Mark: flag → `?` → clear |
 | `c` | Chord (reveal neighbours once flags match the number) |
+| `m` / Esc | Menu |
 | `n` | New board |
-| `r` | Restart the same seed |
+| `r` | Restart the same seed (play again) |
 | `d` | Difficulty menu |
 | `s` | Statistics |
 | `?` | Help |

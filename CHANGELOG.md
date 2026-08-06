@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-08-06
+
+### Added
+
+- In-game menu on `m` or `Esc`: new game, daily challenge, difficulty,
+  statistics, settings, help, and quit. Launch still drops you straight into a
+  board — the menu never blocks startup
+- Settings screen in the menu: theme, no-guess, question marks, and emoji glyphs,
+  saved to config immediately
+- Timelapse watch: finished games are recorded and listed under Menu → Watch.
+  Moves play back automatically; `Space` pauses, `+`/`-` adjust speed, `r`
+  restarts. Distinct from `r` during play, which restarts the same seed for
+  another attempt
+
+### Changed
+
+- Status bar hints now point at `m menu` instead of listing every shortcut
+
 ## [0.3.0] - 2026-08-05
 
 ### Added

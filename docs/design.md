@@ -126,6 +126,28 @@ typo on the command line is an error, while a name in the config file falls back
 to `classic`. A config file written by a newer version should not stop the game
 from starting.
 
+## Menu
+
+The game opens directly onto the board. A title screen would add a step between
+the player and Minesweeper for no gain. The menu is opt-in via `m` or `Esc` and
+collects settings, statistics, and navigation that used to be scattered across
+single-key shortcuts.
+
+`returnScreen` remembers where the player came from so `Esc` from statistics
+opened via the menu returns to the menu, while `Esc` from a shortcut opened
+during play returns to the board.
+
+## Timelapse
+
+`r` during play restarts the same seed — a new attempt at the same layout.
+**Watch** replays a recorded game move by move. The two must stay separate in
+labelling and docs or players will expect the wrong thing.
+
+Recordings live in `internal/game` as `Replay` (seed + moves). The UI appends
+moves during play and `storage` persists them on disk. Playback rebuilds a board
+from the seed and applies moves in order; timelapse is just that loop on a timer
+in the UI layer, not logic in the game package.
+
 ## Errors defined out of existence
 
 Board actions return `ActionResult{Ok: false}` rather than an error when they do
